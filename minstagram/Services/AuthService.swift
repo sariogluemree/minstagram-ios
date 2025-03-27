@@ -23,19 +23,19 @@ class AuthService {
     private let registerURL = APIEndpoints.forAuth.register.url
     private let loginURL = APIEndpoints.forAuth.login.url
     
-    func register(email: String, username: String, password: String, completion: @escaping (Bool, User?, String?) -> Void) {
+    func register(email: String, username: String, password: String, completion: @escaping (Bool, String?) -> Void) {
         let body = ["email": email, "username": username, "password": password]
         performRegister(urlString: registerURL, body: body, completion: completion)
     }
 
-    func login(user: String, password: String, completion: @escaping (Bool, User?, String?) -> Void) {
+    func login(user: String, password: String, completion: @escaping (Bool, String?) -> Void) {
         let body = ["emailOrUsername": user, "password": password]
         performLogin(urlString: loginURL, body: body, completion: completion)
     }
     
-    private func performRegister(urlString: String, body: [String: String], completion: @escaping (Bool, User?, String?) -> Void) {
+    private func performRegister(urlString: String, body: [String: String], completion: @escaping (Bool, String?) -> Void) {
         guard let url = URL(string: urlString) else {
-            completion(false, nil, "Geçersiz URL")
+            completion(false, "Geçersiz URL")
             return
         }
         
@@ -46,18 +46,18 @@ class AuthService {
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         } catch {
-            completion(false, nil, "JSON oluşturulurken hata meydana geldi")
+            completion(false, "JSON oluşturulurken hata meydana geldi")
             return
         }
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                completion(false, nil, error.localizedDescription)
+                completion(false, error.localizedDescription)
                 return
             }
             
             guard let data = data else {
-                completion(false, nil, "Veri alınamadı")
+                completion(false, "Veri alınamadı")
                 return
             }
             
@@ -65,28 +65,27 @@ class AuthService {
                 if httpResponse.statusCode == 200 || httpResponse.statusCode == 201 {
                     do {
                         let registerResponse = try JSONDecoder().decode(RegisterResponse.self, from: data)
-                        print("registerResponse: ", registerResponse)
                         if let registeredUser = registerResponse.newUser, let message = registerResponse.registerMessage {
-                            print("registeredUser: ", registeredUser)
-                            completion(true, registeredUser, message)
+                            UserManager.shared.register(user: registeredUser)
+                            completion(true, message)
                         }
                     } catch {
-                        completion(false, nil, "JSON parsing hatası")
+                        completion(false, "JSON parsing hatası")
                     }
                 } else {
                     let errorMessage = handleMessage(data: data) ?? "İşlem başarısız. Status: \(httpResponse.statusCode)"
-                    completion(false, nil, errorMessage)
+                    completion(false, errorMessage)
                 }
             } else {
-                completion(false, nil, "Geçersiz yanıt")
+                completion(false, "Geçersiz yanıt")
             }
         }
         task.resume()
     }
     
-    private func performLogin(urlString: String, body: [String: String], completion: @escaping (Bool, User?, String?) -> Void) {
+    private func performLogin(urlString: String, body: [String: String], completion: @escaping (Bool, String?) -> Void) {
         guard let url = URL(string: urlString) else {
-            completion(false, nil, "Geçersiz URL")
+            completion(false, "Geçersiz URL")
             return
         }
         
@@ -97,18 +96,18 @@ class AuthService {
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
         } catch {
-            completion(false, nil, "JSON oluşturulurken hata meydana geldi")
+            completion(false, "JSON oluşturulurken hata meydana geldi")
             return
         }
         
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                completion(false, nil, error.localizedDescription)
+                completion(false, error.localizedDescription)
                 return
             }
             
             guard let data = data else {
-                completion(false, nil, "Veri alınamadı")
+                completion(false, "Veri alınamadı")
                 return
             }
             
@@ -118,19 +117,19 @@ class AuthService {
                         let loginResponse = try JSONDecoder().decode(LoginResponse.self, from: data)
                         if let token = loginResponse.token, let user = loginResponse.user {
                             if let tokenData = token.data(using: .utf8) {
-                                KeychainHelper.shared.save(tokenData, service: "com.minstagram.auth", account: "userToken")
+                                UserManager.shared.login(tokenData: tokenData, user: user)
+                                completion(true, nil)
                             }
-                            completion(true, user, nil)
                         }
                     } catch {
-                        completion(false, nil, "JSON parsing hatası")
+                        completion(false, "JSON parsing hatası")
                     }
                 } else {
                     let errorMessage = handleMessage(data: data) ?? "İşlem başarısız. Status: \(httpResponse.statusCode)"
-                    completion(false, nil, errorMessage)
+                    completion(false, errorMessage)
                 }
             } else {
-                completion(false, nil, "Geçersiz yanıt")
+                completion(false, "Geçersiz yanıt")
             }
         }
         task.resume()

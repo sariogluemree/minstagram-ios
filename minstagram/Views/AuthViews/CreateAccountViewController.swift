@@ -28,15 +28,11 @@ class CreateAccountViewController: UIViewController {
             return
         }
         
-        authService.register(email: email, username: username, password: password) { [weak self] success, registeredUser, message in
+        authService.register(email: email, username: username, password: password) { [weak self] success, message in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if success {
-                    let sb = UIStoryboard(name: "Auth", bundle: nil)
-                    if let loginVC = sb.instantiateViewController(withIdentifier: "LoginViewController") as? LoginViewController {
-                        loginVC.newUser = registeredUser
-                        self.navigationController?.pushViewController(loginVC, animated: true)
-                    }
+                    self.navigationController?.popToRootViewController(animated: true)
                 } else {
                     self.showAlert(message: message ?? "Kayıt başarısız.")
                 }

@@ -13,19 +13,16 @@ class LoginViewController: UIViewController {
     @IBOutlet weak var passwordField: UITextField!
     
     let authService = AuthService()
-    var newUser: User?
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        if let user = newUser {
-            self.userField.text = user.username
+        if UserManager.shared.isNewUser() {
+            self.userField.text = UserManager.shared.getNewRegisteredUserName()
         }
     }
     
     override func viewDidLoad() {
-    
         super.viewDidLoad()
-        
     }
     
     @IBAction func loginPressed(_ sender: UIButton) {
@@ -35,14 +32,14 @@ class LoginViewController: UIViewController {
             return
         }
         
-        authService.login(user: emailOrUsername, password: password) { [weak self] success, loggedInUser, errorMessage in
+        authService.login(user: emailOrUsername, password: password) { [weak self] success, errorMessage in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if success {
                     let sb = UIStoryboard(name: "Main", bundle: nil)
-                    if let vc = sb.instantiateViewController(withIdentifier: "FeedViewController") as? FeedViewController {
-                        vc.user = loggedInUser
-                        self.navigationController?.pushViewController(vc, animated: true)
+                    if let nav = sb.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
+                        self.view.window?.rootViewController = nav
+                        self.view.window?.makeKeyAndVisible()
                     }
                 } else {
                     self.showAlert(message: errorMessage ?? "Giriş başarısız.")
