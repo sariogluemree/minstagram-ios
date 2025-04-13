@@ -17,13 +17,15 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     var caption: String?
     var debounceTimer: Timer?
     
-    var tagList : [User] = []
+    var tagList : [Tag] = []
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-
+        
         if tagList.count == 1 {
-            print(tagList.first!.username)
+            if let tag = tagList.first {
+                print(tag.taggedUser.username)
+            }
         } else if tagList.count > 1 {
             print(tagList.count)
         }
@@ -98,6 +100,38 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     }
     
     @IBAction func shareBtnPressed(_ sender: UIButton) {
+        
+        guard let image = newPostImgView.image else {
+            print("No image to upload")
+            return
+        }
+    
+        UploadService.shared.uploadImageToBackend(image: image) { imageUrl in
+            guard let url = imageUrl else {
+                print("Upload failed")
+                return
+            }
+            
+            let caption = self.caption ?? ""
+            let tags = self.tagList
+
+            PostService.shared.createPost(imageUrl: url, caption: caption, tags: tags) { result in
+                switch result {
+                case .success(let post):
+                    print(post)
+                    print("Post created successfully!")
+                    DispatchQueue.main.async {
+                        let sb = UIStoryboard(name: "Main", bundle: nil)
+                        if let nav = sb.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
+                            self.view.window?.rootViewController = nav
+                            self.view.window?.makeKeyAndVisible()
+                        }
+                    }
+                case .failure(let error):
+                    print("Failed to create post: \(error)")
+                }
+            }
+        }
         
     }
     

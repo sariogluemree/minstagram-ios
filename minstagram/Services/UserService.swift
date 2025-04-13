@@ -14,8 +14,8 @@ class UserService {
     private let deleteURL = APIEndpoints.forUser.delete.url
 
     // MARK: - Get User Profile
-    func getProfile(username: String, completion: @escaping (Result<User, Error>) -> Void) {
-        guard let url = URL(string: profileURL + "/\(username)") else {
+    func getProfile<T: Decodable>(username: String, type: String, model: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
+        guard let url = URL(string: "\(profileURL)/\(username)?type=\(type)") else {
             completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
@@ -43,7 +43,8 @@ class UserService {
             }
 
             do {
-                let user = try JSONDecoder().decode(User.self, from: data)
+                let decoder = JSONDecoder()
+                let user = try decoder.decode(T.self, from: data)
                 completion(.success(user))
             } catch {
                 completion(.failure(error))
@@ -52,7 +53,7 @@ class UserService {
     }
 
     // MARK: - Update User Profile
-    func updateProfile(token: String, name: String?, bio: String?, profilePhoto: String?, completion: @escaping (Result<User, Error>) -> Void) {
+    func updateProfile(token: String, name: String?, bio: String?, profilePhoto: String?, completion: @escaping (Result<UserDetail, Error>) -> Void) {
         guard let url = URL(string: updateURL) else {
             completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
@@ -96,7 +97,7 @@ class UserService {
             }
 
             do {
-                let updatedUser = try JSONDecoder().decode(User.self, from: data)
+                let updatedUser = try JSONDecoder().decode(UserDetail.self, from: data)
                 completion(.success(updatedUser))
             } catch {
                 completion(.failure(error))

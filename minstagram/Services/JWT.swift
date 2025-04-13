@@ -17,6 +17,7 @@ class JWT {
         do {
             let jwt = try decode(jwt: token)
             if let expDate = jwt.expiresAt {
+                print("expDate: \(expDate)")
                 return expDate < Date() // Şu anki tarihten eskiyse token süresi dolmuş
             }
         } catch {

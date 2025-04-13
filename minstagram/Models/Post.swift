@@ -9,22 +9,29 @@ import Foundation
 
 struct Post: Codable {
     let id: String
-    let userId: String
-    let username: String
-    let userProfileImageUrl: String?
     let imageUrl: String
     let caption: String?
+    let tags: [Tag]
+    let createdAt: String
+    let user: PostUser
+    let comments: [Comment]
     let likeCount: Int
-    let createdAt: Date
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case userId
-        case username
-        case userProfileImageUrl
         case imageUrl
         case caption
-        case likeCount
+        case tags
         case createdAt
+        case user
+        case comments
+        case likeCount
     }
+}
+
+struct Comment: Codable {
+    let id: String
+    let text: String
+    let user: PostUser
+    let createdAt: String
 }

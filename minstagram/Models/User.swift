@@ -7,12 +7,17 @@
 
 import Foundation
 
+enum UserProfile {
+    case postProfile(PostUser)
+    case publicProfile(UserDetail)
+}
+
 struct UserDetail: Codable {
     let id: String
     let username: String
-    var profilePhoto: String
-    var name: String
-    var bio: String
+    var profilePhoto: String?
+    var name: String?
+    var bio: String?
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"

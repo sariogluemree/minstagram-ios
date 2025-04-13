@@ -29,13 +29,13 @@ class FollowService {
     }
         
     /// Kullanıcının takip ettiği kişileri getir
-    func getFollowing(userId: String, completion: @escaping ([User]?, Bool, String?) -> Void) {
+    func getFollowing(userId: String, completion: @escaping ([PostUser]?, Bool, String?) -> Void) {
         let url = "\(followingURL)/\(userId)"
         performGetRequest(urlString: url, completion: completion)
     }
     
     /// Kullanıcının takipçilerini getir
-    func getFollowers(userId: String, completion: @escaping ([User]?, Bool, String?) -> Void) {
+    func getFollowers(userId: String, completion: @escaping ([PostUser]?, Bool, String?) -> Void) {
         let url = "\(followersURL)/\(userId)"
         performGetRequest(urlString: url, completion: completion)
     }
@@ -73,7 +73,7 @@ class FollowService {
     }
     
     /// HTTP GET işlemleri için genel fonksiyon
-    private func performGetRequest(urlString: String, completion: @escaping ([User]?, Bool, String?) -> Void) {
+    private func performGetRequest(urlString: String, completion: @escaping ([PostUser]?, Bool, String?) -> Void) {
         guard let url = URL(string: urlString) else {
             completion(nil, false, "Geçersiz URL")
             return
@@ -91,7 +91,7 @@ class FollowService {
             }
             
             do {
-                let users = try JSONDecoder().decode([User].self, from: data)
+                let users = try JSONDecoder().decode([PostUser].self, from: data)
                 completion(users, true, nil)
             } catch {
                 completion(nil, false, "JSON parsing hatası")

@@ -20,11 +20,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let window = UIWindow(windowScene: windowScene)
         
         if UserManager.shared.isLoggedIn() {
+            print("user logged in")
             UserManager.shared.getActiveUser()
             let mainStoryboard = UIStoryboard(name: "Main", bundle: nil)
             let homeVC = mainStoryboard.instantiateInitialViewController()
             window.rootViewController = homeVC
         } else {
+            print("user not logged in")
             let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
             let loginVC = authStoryboard.instantiateInitialViewController()!
             window.rootViewController = loginVC

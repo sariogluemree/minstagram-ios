@@ -16,30 +16,43 @@ class PostService {
     
     static let shared = PostService()
     private let postBaseUrl = APIEndpoints.forPost.all.url
-    private var tokenData = KeychainHelper.shared.read(service: "minstagram", account: "token")
+    private var token: String?
     
     private init() {
-        if tokenData != nil {
-            
-        }
-        if let token = String(data: tokenData!, encoding: .utf8), !token.isEmpty {
-            
+        if let tokenData = KeychainHelper.shared.read(service: "com.minstagram.auth", account: "userToken"),
+           let token = String(data: tokenData, encoding: .utf8), !token.isEmpty {
+            self.token = token
+        } else {
+            //kullanıcıyı giriş yapmaya yönlendir.
         }
     }
     
-    func createPost(token: String, imageUrl: String, caption: String?, tags: [String]?, completion: @escaping (Result<Post, Error>) -> Void) {
+    func createPost(imageUrl: String, caption: String?, tags: [Tag]?, completion: @escaping (Result<Post, Error>) -> Void) {
         guard let url = URL(string: postBaseUrl) else { return }
-        
+        print(url)
+        print(token ?? "token yok")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token!)", forHTTPHeaderField: "Authorization")
         
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "imageUrl": imageUrl,
             "caption": caption ?? "",
-            "tags": tags ?? []
         ]
+        
+        if let tags = tags {
+            let tagArray = tags.map { tag -> [String: Any] in
+                return [
+                    "taggedUser": tag.taggedUser.id,
+                    "position": [
+                        "x": tag.position.x,
+                        "y": tag.position.y
+                    ]
+                ]
+            }
+            body["tags"] = tagArray
+        }
         
         request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
         
@@ -94,12 +107,12 @@ class PostService {
         }.resume()
     }
     
-    func deletePost(token: String, byId id: String, completion: @escaping (Result<String, Error>) -> Void) {
+    func deletePost(byId id: String, completion: @escaping (Result<String, Error>) -> Void) {
         guard let url = URL(string: "\(postBaseUrl)/\(id)") else { return }
         
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token!)", forHTTPHeaderField: "Authorization")
         
         URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data, error == nil else {
@@ -120,13 +133,13 @@ class PostService {
         }.resume()
     }
     
-    func updatePost(token: String, byId id: String, caption: String, completion: @escaping (Result<Post, Error>) -> Void) {
+    func updatePost(byId id: String, caption: String, completion: @escaping (Result<Post, Error>) -> Void) {
         guard let url = URL(string: "\(postBaseUrl)/\(id)") else { return }
         
         var request = URLRequest(url: url)
         request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(token!)", forHTTPHeaderField: "Authorization")
         
         let body = ["caption": caption]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])

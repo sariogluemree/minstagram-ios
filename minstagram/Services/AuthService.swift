@@ -10,11 +10,11 @@ import Foundation
 
 struct LoginResponse: Codable {
     let token: String?
-    let user: User?
+    let user: UserDetail?
 }
 
 struct RegisterResponse: Codable {
-    let newUser: User?
+    let newUser: UserDetail?
     let registerMessage: String?
 }
 
