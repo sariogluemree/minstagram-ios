@@ -8,7 +8,11 @@
 import UIKit
 import PhotosUI
 
-class FeedViewController: UIViewController, PHPickerViewControllerDelegate {
+class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
+    
+    @IBOutlet weak var tableView: UITableView!
+    
+    var posts: [Post] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,8 +23,29 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate {
         titleLabel.sizeToFit()
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: titleLabel)
         
+        let nib = UINib(nibName: "PostCell", bundle: nil)
+        tableView.register(nib, forCellReuseIdentifier: "PostCell")
+        
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.separatorStyle = .none
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 600
+        
+        PostService.shared.fetchAllPosts { result in
+            switch(result) {
+            case .success(let posts):
+                self.posts = posts
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                }
+            case .failure(let error):
+                print("Error fetching posts: \(error)")
+            }
+        }
+        
     }
-
+    
     @IBAction func newPost(_ sender: UIButton) {
         var config = PHPickerConfiguration()
         config.filter = .images
@@ -53,4 +78,31 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate {
     }
     
 }
+
+extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        posts.count
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "PostCell", for: indexPath) as? PostCell else {
+            return UITableViewCell()
+        }
+        
+        let post = posts[indexPath.row]
+        
+        cell.configure(with: post)
+        
+        // Örnek closure callback
+        /*cell.onLikeTapped = {
+            print("Beğenilen post: \(post.id)")
+        }*/
+
+        return cell
+    }
+
+}
+
 

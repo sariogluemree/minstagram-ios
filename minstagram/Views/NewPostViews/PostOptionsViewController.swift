@@ -73,6 +73,7 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
                 let sb = UIStoryboard(name: "NewPost", bundle: nil)
                 if let vc = sb.instantiateViewController(withIdentifier: "TagPeopleViewController") as? TagPeopleViewController {
                     vc.postImg = newPostImg
+                    vc.tagList = self.tagList
                     self.navigationController?.pushViewController(vc, animated: true)
                 }
             }

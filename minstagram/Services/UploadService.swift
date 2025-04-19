@@ -18,8 +18,10 @@ class UploadService {
             completion(nil)
             return
         }
-
-        let url = URL(string: "http://localhost:5001/api/upload")!
+        guard let url = URL(string: APIEndpoints.forUpload.upload.url) else {
+            completion(nil)
+            return
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
 

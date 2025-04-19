@@ -16,9 +16,12 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cLz-wf-DLm">
-                                <rect key="frame" x="181" y="788" width="40" height="40"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cLz-wf-DLm">
+                                <rect key="frame" x="176.66666666666666" y="736" width="40" height="40"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="40" id="3zB-t2-lhL"/>
+                                    <constraint firstAttribute="height" constant="40" id="fQt-FR-mz3"/>
+                                </constraints>
                                 <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" image="plus.app" catalog="system"/>
@@ -26,11 +29,26 @@
                                     <action selector="newPost:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ia7-1S-Ukb"/>
                                 </connections>
                             </button>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="FkD-1l-uUa">
+                                <rect key="frame" x="0.0" y="162" width="393" height="566"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            </tableView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="FkD-1l-uUa" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="Knu-6g-QDR"/>
+                            <constraint firstItem="FkD-1l-uUa" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="M9O-wb-UvY"/>
+                            <constraint firstItem="cLz-wf-DLm" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="lmM-fi-O5E"/>
+                            <constraint firstItem="cLz-wf-DLm" firstAttribute="top" secondItem="FkD-1l-uUa" secondAttribute="bottom" constant="8" id="nHW-cV-Mxp"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="cLz-wf-DLm" secondAttribute="bottom" constant="8" id="rX7-Bt-TGl"/>
+                            <constraint firstItem="FkD-1l-uUa" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="rjj-lV-39w"/>
+                        </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="H8V-v1-ofl"/>
+                    <connections>
+                        <outlet property="tableView" destination="FkD-1l-uUa" id="vHP-5G-2mO"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>

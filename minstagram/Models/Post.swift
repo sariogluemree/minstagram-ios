@@ -10,12 +10,12 @@ import Foundation
 struct Post: Codable {
     let id: String
     let imageUrl: String
-    let caption: String?
+    var caption: String?
     let tags: [Tag]
     let createdAt: String
     let user: PostUser
-    let comments: [Comment]
-    let likeCount: Int
+    var comments: [Comment]
+    var likeCount: Int
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -23,15 +23,8 @@ struct Post: Codable {
         case caption
         case tags
         case createdAt
-        case user
+        case user = "userId"
         case comments
         case likeCount
     }
-}
-
-struct Comment: Codable {
-    let id: String
-    let text: String
-    let user: PostUser
-    let createdAt: String
 }

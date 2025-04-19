@@ -56,6 +56,7 @@ class TagPeopleViewController: UIViewController {
     
     private func setupHintLabel() {
         hintLabel = UILabel()
+        hintLabel.isHidden = tagList.isEmpty ? false : true
         hintLabel.text = "Tap photo to tag people"
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(hintLabel)
@@ -94,6 +95,20 @@ class TagPeopleViewController: UIViewController {
                 guard let self = self else { return }
                 if success {
                     self.followerList = followers ?? []
+                    if !self.tagList.isEmpty {
+                        for tag in self.tagList {
+                            let point = CGPoint(x: tag.position.x, y: tag.position.y)
+                            self.addTagBalloon(at: point, username: tag.taggedUser.username)
+                            for i in 0..<self.followerList.count {
+                                if self.followerList[i].username == tag.taggedUser.username {
+                                    self.followerList.remove(at: i)
+                                    break
+                                }
+                            }
+                            self.tagViewsDict[tag.taggedUser.username] = self.tagView
+                        }
+                    }
+
                 } else {
                     self.showAlert(message: message ?? "Failed to load followers")
                 }
