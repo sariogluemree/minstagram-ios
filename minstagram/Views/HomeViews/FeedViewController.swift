@@ -46,6 +46,20 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
         
     }
     
+    func refreshPost(withId id: String, at indexPath: IndexPath) {
+        PostService.shared.fetchPost(byId: id) { result in
+            switch result {
+            case .success(let updatedPost):
+                DispatchQueue.main.async {
+                    self.posts[indexPath.row] = updatedPost
+                    self.tableView.reloadRows(at: [indexPath], with: .none)
+                }
+            case .failure(let error):
+                print(error)
+            }
+        }
+    }
+    
     @IBAction func newPost(_ sender: UIButton) {
         var config = PHPickerConfiguration()
         config.filter = .images
@@ -90,17 +104,63 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "PostCell", for: indexPath) as? PostCell else {
             return UITableViewCell()
         }
-        
+        cell.selectionStyle = .none
         let post = posts[indexPath.row]
         
         cell.configure(with: post)
         
-        // Örnek closure callback
-        /*cell.onLikeTapped = {
-            print("Beğenilen post: \(post.id)")
-        }*/
+        cell.onLikeTapped = {
+            if post.isLiked {
+                LikeService.shared.unlikePost(postId: post.id) { result in
+                    switch result {
+                    case .success(let message):
+                        print(message)
+                        self.refreshPost(withId: post.id, at: indexPath)
+                    case .failure(let error):
+                        print(error)
+                    }
+                }
+            } else {
+                LikeService.shared.likePost(postId: post.id) { result in
+                    switch result {
+                    case .success(_):
+                        print("Post liked")
+                        self.refreshPost(withId: post.id, at: indexPath)
+                    case .failure(let error):
+                        print(error)
+                    }
+                }
+            }
+        }
+        cell.onSaveTapped = {
+            if post.isSaved {
+                SavedPostService.shared.unsavePost(postId: post.id) { result in
+                    switch result {
+                    case .success(let message):
+                        print(message)
+                        self.refreshPost(withId: post.id, at: indexPath)
+                    case .failure(let error):
+                        print(error)
+                    }
+                }
+            } else {
+                SavedPostService.shared.savePost(postId: post.id) { result in
+                    switch result {
+                    case .success(_):
+                        print("Post saved")
+                        self.refreshPost(withId: post.id, at: indexPath)
+                    case .failure(let error):
+                        print(error)
+                    }
+                }
+            }
+        }
 
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
     }
 
 }

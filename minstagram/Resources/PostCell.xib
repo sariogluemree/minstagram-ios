@@ -33,6 +33,9 @@
                                 <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="plain" image="heart" catalog="system"/>
+                                <connections>
+                                    <action selector="likeButtonTapped:" destination="0tO-fu-vLz" eventType="touchUpInside" id="nu9-bx-x3c"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="H13-GY-JqB">
                                 <rect key="frame" x="48" y="0.0" width="40" height="40"/>
@@ -77,6 +80,9 @@
                         <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <state key="normal" title="Button"/>
                         <buttonConfiguration key="configuration" style="plain" image="bookmark" catalog="system"/>
+                        <connections>
+                            <action selector="saveButtonTapped:" destination="0tO-fu-vLz" eventType="touchUpInside" id="wdv-Y3-Tib"/>
+                        </connections>
                     </button>
                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="SwX-ee-dvJ">
                         <rect key="frame" x="8" y="8" width="40" height="40"/>
@@ -107,6 +113,19 @@
                         <color key="textColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <nil key="highlightedColor"/>
                     </label>
+                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MLB-8u-pdK">
+                        <rect key="frame" x="8" y="421" width="20" height="20"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="20" id="ZLa-So-Y94"/>
+                            <constraint firstAttribute="width" constant="20" id="nmW-ch-FtJ"/>
+                        </constraints>
+                        <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <state key="normal" title="Button"/>
+                        <buttonConfiguration key="configuration" style="plain" image="person.circle" catalog="system"/>
+                        <connections>
+                            <action selector="toggleTagHidden:" destination="0tO-fu-vLz" eventType="touchUpInside" id="pHe-lG-byn"/>
+                        </connections>
+                    </button>
                 </subviews>
                 <constraints>
                     <constraint firstItem="67a-OL-3XU" firstAttribute="top" secondItem="H9a-Aw-Rbx" secondAttribute="bottom" constant="8" id="0UB-LX-8yJ"/>
@@ -120,6 +139,7 @@
                     <constraint firstItem="H9a-Aw-Rbx" firstAttribute="top" secondItem="SwX-ee-dvJ" secondAttribute="bottom" constant="8" id="L5v-2J-9EL"/>
                     <constraint firstItem="SwX-ee-dvJ" firstAttribute="top" secondItem="buq-HL-0Ai" secondAttribute="top" constant="8" id="LUx-dr-NQs"/>
                     <constraint firstItem="M4Q-7c-7Hc" firstAttribute="top" secondItem="buq-HL-0Ai" secondAttribute="top" constant="8" id="LhT-Te-zqR"/>
+                    <constraint firstItem="67a-OL-3XU" firstAttribute="top" secondItem="MLB-8u-pdK" secondAttribute="bottom" constant="16" id="RJ8-Fl-g6x"/>
                     <constraint firstItem="o6o-aq-NL8" firstAttribute="top" secondItem="9ro-jM-AEe" secondAttribute="bottom" constant="8" id="Vdc-Oh-0yL"/>
                     <constraint firstItem="7iW-jC-Xfq" firstAttribute="top" secondItem="H9a-Aw-Rbx" secondAttribute="bottom" constant="8" id="fLb-60-kCN"/>
                     <constraint firstItem="SwX-ee-dvJ" firstAttribute="leading" secondItem="buq-HL-0Ai" secondAttribute="leading" constant="8" id="fPU-fW-RTw"/>
@@ -127,6 +147,7 @@
                     <constraint firstItem="Kfb-Q7-u3I" firstAttribute="leading" secondItem="buq-HL-0Ai" secondAttribute="leading" constant="8" id="l0l-8b-sr7"/>
                     <constraint firstItem="o6o-aq-NL8" firstAttribute="leading" secondItem="buq-HL-0Ai" secondAttribute="leading" constant="8" id="pmC-1S-0Uu"/>
                     <constraint firstItem="H9a-Aw-Rbx" firstAttribute="leading" secondItem="buq-HL-0Ai" secondAttribute="leading" id="s1P-6a-PwS"/>
+                    <constraint firstItem="MLB-8u-pdK" firstAttribute="leading" secondItem="buq-HL-0Ai" secondAttribute="leading" constant="8" id="tfG-Uz-X1l"/>
                     <constraint firstItem="9ro-jM-AEe" firstAttribute="top" secondItem="Kfb-Q7-u3I" secondAttribute="bottom" constant="8" id="vjx-Xk-1lz"/>
                     <constraint firstItem="ph4-jQ-vBX" firstAttribute="leading" secondItem="SwX-ee-dvJ" secondAttribute="trailing" constant="8" id="xfD-tT-ecl"/>
                 </constraints>
@@ -152,5 +173,6 @@
         <image name="ellipsis" catalog="system" width="128" height="37"/>
         <image name="heart" catalog="system" width="128" height="107"/>
         <image name="paperplane" catalog="system" width="128" height="119"/>
+        <image name="person.circle" catalog="system" width="128" height="123"/>
     </resources>
 </document>

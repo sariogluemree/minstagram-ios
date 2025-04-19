@@ -1,16 +1,22 @@
 PODS:
   - JWTDecode (3.2.0)
+  - SDWebImage (5.21.0):
+    - SDWebImage/Core (= 5.21.0)
+  - SDWebImage/Core (5.21.0)
 
 DEPENDENCIES:
   - JWTDecode
+  - SDWebImage
 
 SPEC REPOS:
   trunk:
     - JWTDecode
+    - SDWebImage
 
 SPEC CHECKSUMS:
   JWTDecode: 7dae24cb9bf9b608eae61e5081029ec169bb5527
+  SDWebImage: f84b0feeb08d2d11e6a9b843cb06d75ebf5b8868
 
-PODFILE CHECKSUM: 4584f0103c464b42c33c202eee4e3ab8a1abb1b2
+PODFILE CHECKSUM: 4048e4bfc423ae58c3831da7e6276158932d2331
 
 COCOAPODS: 1.16.2

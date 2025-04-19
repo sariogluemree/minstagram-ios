@@ -14,7 +14,7 @@ struct Like: Codable {
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
-        case user = "user_id"
-        case post = "post_id"
+        case user = "userId"
+        case post = "postId"
     }
 }

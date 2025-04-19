@@ -17,6 +17,7 @@ class PostService {
     static let shared = PostService()
     private let postBaseUrl = APIEndpoints.forPost.all.url
     private let feedURL = APIEndpoints.forPost.feed.url
+    private let getPostURL = APIEndpoints.forPost.post.url
     private var token: String?
     
     private init() {
@@ -30,6 +31,7 @@ class PostService {
     
     func createPost(imageUrl: String, caption: String?, tags: [Tag]?, completion: @escaping (Result<Post, Error>) -> Void) {
         guard let url = URL(string: postBaseUrl) else { return }
+        
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -93,9 +95,14 @@ class PostService {
     }
     
     func fetchPost(byId id: String, completion: @escaping (Result<Post, Error>) -> Void) {
-        guard let url = URL(string: "\(URLSession.shared)/\(id)") else { return }
-        
-        URLSession.shared.dataTask(with: url) { data, response, error in
+        guard let url = URL(string: "\(getPostURL)/\(id)") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue( "application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data, error == nil else {
                 completion(.failure(error!))
                 return

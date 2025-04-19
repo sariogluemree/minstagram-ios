@@ -16,6 +16,8 @@ struct Post: Codable {
     let user: PostUser
     var comments: [Comment]
     var likeCount: Int
+    var isLiked: Bool
+    var isSaved: Bool
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -26,5 +28,7 @@ struct Post: Codable {
         case user = "userId"
         case comments
         case likeCount
+        case isLiked
+        case isSaved
     }
 }

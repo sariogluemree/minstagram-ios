@@ -69,6 +69,7 @@ struct APIEndpoints {
     enum forPost: String {
         case all = "/"
         case feed = "/feed"
+        case post = "/post"
         
         var url : String {
             return APIEndpoints.baseURL + "posts" + self.rawValue
@@ -92,6 +93,16 @@ struct APIEndpoints {
         
         var url: String {
             return APIEndpoints.baseURL + "likes/" + self.rawValue
+        }
+    }
+    
+    enum forSavedPost: String {
+        case save = "save"
+        case getAll = "getAll"
+        case unsave = "unsave"
+        
+        var url: String {
+            return APIEndpoints.baseURL + "savedPosts/" + self.rawValue
         }
     }
 
