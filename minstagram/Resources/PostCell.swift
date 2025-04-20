@@ -20,8 +20,8 @@ class PostCell: UITableViewCell {
     @IBOutlet weak var likeCountLabel: UILabel!
     @IBOutlet weak var captionLabel: UILabel!
     @IBOutlet weak var commentsLabel: UILabel!
+    @IBOutlet weak var taggedPeopleIcon: UIButton!
     
-    private var tagView: UIView?
     var onLikeTapped: (() -> Void)?
     var onSaveTapped: (() -> Void)?
 
@@ -32,6 +32,9 @@ class PostCell: UITableViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        for subview in postImageView.subviews {
+            subview.removeFromSuperview()
+        }
         postImageView.sd_cancelCurrentImageLoad()
         postImageView.image = UIImage(named: "placeholder")
         likeButton.setImage(UIImage(systemName: "heart"), for: .normal)
@@ -71,13 +74,15 @@ class PostCell: UITableViewCell {
         if let imageUrl = URL(string: post.imageUrl) {
             loadImage(from: imageUrl, into: postImageView)
         }
-        for tag in post.tags {
-            let point = CGPoint(x: tag.position.x, y: tag.position.y)
-            addTagBalloon(at: point, username: tag.taggedUser.username, in: postImageView)
+        taggedPeopleIcon.isHidden = true
+        if !post.tags.isEmpty {
+            taggedPeopleIcon.isHidden = false
+            for tag in post.tags {
+                let point = CGPoint(x: tag.position.x, y: tag.position.y)
+                addTagBalloon(at: point, username: tag.taggedUser.username, in: postImageView)
+            }
         }
-        for tagBalloon in postImageView.subviews {
-            tagBalloon.isHidden = true
-        }
+
         likeCountLabel.text = "\(post.likeCount) likes"
         captionLabel.text = "\(post.user.username): \(post.caption ?? "")"
         let comments = post.comments.prefix(2).map { "\($0.user.username): \($0.text)" }.joined(separator: "\n")
@@ -94,8 +99,8 @@ class PostCell: UITableViewCell {
     
     func addTagBalloon(at point: CGPoint, username: String, in postImgView: UIImageView ) {
         let tagBalloon = TagBalloon(username: username, position: point, in: postImgView)
+        tagBalloon.isHidden = true
         postImgView.addSubview(tagBalloon)
-        tagView = tagBalloon
     }
 
     private func loadImage(from url: URL, into imageView: UIImageView) {

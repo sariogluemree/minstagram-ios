@@ -60,6 +60,12 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
         }
     }
     
+    @IBAction func showNotifications(_ sender: UIBarButtonItem) {
+        let sb = UIStoryboard(name: "Main", bundle: nil)
+        let vc = sb.instantiateViewController(withIdentifier: "NotificationsViewController") as! NotificationsViewController
+        navigationController?.pushViewController(vc, animated: true)
+    }
+    
     @IBAction func newPost(_ sender: UIButton) {
         var config = PHPickerConfiguration()
         config.filter = .images
@@ -160,7 +166,9 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        
+        if let cell = tableView.cellForRow(at: indexPath) as? PostCell {
+            cell.postImageView.subviews.forEach { $0.isHidden = true }
+        }
     }
 
 }

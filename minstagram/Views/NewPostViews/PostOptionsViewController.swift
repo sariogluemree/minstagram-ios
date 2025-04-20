@@ -41,7 +41,6 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        navigationItem.title = "New Post"
         let titleLabel = UILabel()
         titleLabel.text = "New Post"
         titleLabel.font = UIFont(name: "Helvetica Neue", size: 22)

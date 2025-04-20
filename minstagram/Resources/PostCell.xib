@@ -119,7 +119,7 @@
                             <constraint firstAttribute="height" constant="20" id="ZLa-So-Y94"/>
                             <constraint firstAttribute="width" constant="20" id="nmW-ch-FtJ"/>
                         </constraints>
-                        <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="tintColor" red="0.92143100499999997" green="0.92145264149999995" blue="0.92144101860000005" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <state key="normal" title="Button"/>
                         <buttonConfiguration key="configuration" style="plain" image="person.circle" catalog="system"/>
                         <connections>
@@ -162,6 +162,7 @@
                 <outlet property="postImageView" destination="H9a-Aw-Rbx" id="WAi-X2-BKN"/>
                 <outlet property="profileImageView" destination="SwX-ee-dvJ" id="FVD-3m-oQt"/>
                 <outlet property="shareButton" destination="Si4-Rm-PYz" id="eKC-KS-96n"/>
+                <outlet property="taggedPeopleIcon" destination="MLB-8u-pdK" id="C2O-cc-ER6"/>
                 <outlet property="usernameLabel" destination="ph4-jQ-vBX" id="GT5-br-96j"/>
             </connections>
             <point key="canvasLocation" x="-850" y="-880"/>

@@ -45,7 +45,15 @@
                             <constraint firstItem="FkD-1l-uUa" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" id="rjj-lV-39w"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" id="H8V-v1-ofl"/>
+                    <navigationItem key="navigationItem" id="H8V-v1-ofl">
+                        <barButtonItem key="rightBarButtonItem" title="Item" image="suit.heart" catalog="system" id="4db-xb-icR">
+                            <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <connections>
+                                <action selector="showNotifications:" destination="BYZ-38-t0r" id="8Ae-K7-lxg"/>
+                                <segue destination="Hz4-td-z2f" kind="push" id="b4G-29-SPV"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
                     <connections>
                         <outlet property="tableView" destination="FkD-1l-uUa" id="vHP-5G-2mO"/>
                     </connections>
@@ -53,6 +61,29 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="1397.709923664122" y="50.70422535211268"/>
+        </scene>
+        <!--Notifications View Controller-->
+        <scene sceneID="NtR-1r-E57">
+            <objects>
+                <viewController storyboardIdentifier="NotificationsViewController" id="Hz4-td-z2f" customClass="NotificationsViewController" customModule="minstagram" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="gUa-G9-UwW">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <viewLayoutGuide key="safeArea" id="Fpg-mj-rei"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <navigationItem key="navigationItem" id="MCB-Sa-r08">
+                        <barButtonItem key="leftBarButtonItem" title="Item" image="arrow.backward" catalog="system" id="wLa-hu-QWu">
+                            <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <connections>
+                                <action selector="backToFeed:" destination="Hz4-td-z2f" id="Q70-g4-dX5"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="bdu-6Z-AnR" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="2202" y="51"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="21G-7S-soW">
@@ -74,7 +105,9 @@
         </scene>
     </scenes>
     <resources>
+        <image name="arrow.backward" catalog="system" width="128" height="95"/>
         <image name="plus.app" catalog="system" width="128" height="114"/>
+        <image name="suit.heart" catalog="system" width="128" height="107"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
