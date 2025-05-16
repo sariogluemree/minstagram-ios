@@ -6,13 +6,14 @@
 //
 
 import UIKit
-import PhotosUI
+import SDWebImage
 
-class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
+class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     
     @IBOutlet weak var tableView: UITableView!
     
     var posts: [Post] = []
+    private let refreshControl = UIRefreshControl()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,6 +33,9 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 600
         
+        refreshControl.addTarget(self, action: #selector(refreshFeed), for: .valueChanged)
+        tableView.refreshControl = refreshControl
+        
         PostService.shared.fetchAllPosts { result in
             switch(result) {
             case .success(let posts):
@@ -44,6 +48,29 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
             }
         }
         
+    }
+    
+    @objc private func refreshFeed() {
+        PostService.shared.fetchAllPosts { [weak self] result in
+            DispatchQueue.main.async {
+                switch(result) {
+                case .success(let posts):
+                    self?.posts = posts
+                    self?.tableView.reloadData()
+                case .failure(let error):
+                    print(error)
+                    //alert örneği
+                    /*let alert = UIAlertController(
+                        title: "Hata",
+                        message: "Gönderiler yüklenirken bir hata oluştu: \(error.localizedDescription)",
+                        preferredStyle: .alert
+                    )
+                    alert.addAction(UIAlertAction(title: "Tamam", style: .default))
+                    self?.present(alert, animated: true)*/
+                }
+                self?.refreshControl.endRefreshing()
+            }
+        }
     }
     
     func refreshPost(withId id: String, at indexPath: IndexPath) {
@@ -66,37 +93,6 @@ class FeedViewController: UIViewController, PHPickerViewControllerDelegate{
         navigationController?.pushViewController(vc, animated: true)
     }
     
-    @IBAction func newPost(_ sender: UIButton) {
-        var config = PHPickerConfiguration()
-        config.filter = .images
-        config.selectionLimit = 1
-
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = self
-        present(picker, animated: true) // 📌 Picker direkt olarak anasayfanın üzerine açılacak
-    }
-
-    // Kullanıcı bir fotoğraf seçtiğinde burası çalışır
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true) // Picker'ı kapat
-
-        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
-
-        provider.loadObject(ofClass: UIImage.self) { image, error in
-            DispatchQueue.main.async {
-                if let selectedImage = image as? UIImage {
-                    let sb = UIStoryboard(name: "NewPost", bundle: nil)
-                    if let nav = sb.instantiateViewController(withIdentifier: "NewPostNavigationController") as? UINavigationController,
-                       let vc = nav.viewControllers.first as? PostOptionsViewController {
-                        vc.selectedImage = selectedImage
-                        self.view.window?.rootViewController = nav
-                        self.view.window?.makeKeyAndVisible()
-                    }
-                }
-            }
-        }
-    }
-    
 }
 
 extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
@@ -113,7 +109,42 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
         cell.selectionStyle = .none
         let post = posts[indexPath.row]
         
-        cell.configure(with: post)
+        cell.post = post
+        cell.configure(with: post, isTruncated: cell.isExpandedCaption)
+        
+        cell.onOptionsTapped = {
+            let actionSheet = UIAlertController(title: "Options", message: nil, preferredStyle: .actionSheet)
+            
+            actionSheet.addAction(UIAlertAction(title: "Edit post", style: .default, handler: { _ in
+                //edit sayfası yap.
+            }))
+            actionSheet.addAction(UIAlertAction(title: "Delete post", style: .default, handler: { _ in
+                PostService.shared.deletePost(byId: post.id) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let message):
+                            self.posts.remove(at: indexPath.row)
+                            self.tableView.deleteRows(at: [indexPath], with	: .automatic)
+                            print(message)
+                        case .failure(let error):
+                            print(error)
+                        }
+                    }
+                }
+            }))
+            ///like count tek option şeklinde olacak. post'un likeCount'u için flag tutulacak. bu option bool değer için toggle yapacak ve ona göre ui düzenleyecek.
+            actionSheet.addAction(UIAlertAction(title: "Hide like count", style: .default, handler: { _ in
+                cell.likeCountLabel.text = "*** likes"
+            }))
+            actionSheet.addAction(UIAlertAction(title: "Show like count", style: .default, handler: { _ in
+                cell.likeCountLabel.text = "\(post.likeCount) likes"
+            }))
+
+            actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+
+            // Present it (e.g., in a view controller)
+            self.present(actionSheet, animated: true, completion: nil)
+        }
         
         cell.onLikeTapped = {
             if post.isLiked {
@@ -161,6 +192,41 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
                 }
             }
         }
+        
+        cell.onGoProfileTapped = {
+            UserService.shared.getProfile(username: post.user.username, type: "public", model: UserDetail.self) { result in
+                switch result {
+                case .success(let detailedUser):
+                    DispatchQueue.main.async {
+                        let sb = UIStoryboard(name: "Profile", bundle: nil)
+                        let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                        vc.user = detailedUser
+                        vc.backBtn.isHidden = false
+                        self.navigationController?.pushViewController(vc, animated: true)
+                    }
+                case .failure(let error):
+                    print(error)
+                }
+            }
+        }
+        
+        cell.onCaptionTapped = {
+            cell.configure(with: post, isTruncated: !cell.isExpandedCaption)
+            tableView.beginUpdates()
+            tableView.endUpdates()
+        }
+        
+        cell.onCommentTapped = {
+            let storyboard = UIStoryboard(name: "Main", bundle: nil)
+            if let commentsNav = storyboard.instantiateViewController(withIdentifier: "CommentsNavController") as? UINavigationController {
+                let commentsVC = commentsNav.viewControllers.first as! CommentsViewController
+                commentsVC.delegate = self
+                commentsVC.post = post
+                commentsVC.postIndex = indexPath
+                commentsNav.modalPresentationStyle = .pageSheet
+                self.present(commentsNav, animated: true, completion: nil)
+            }
+        }
 
         return cell
     }
@@ -170,6 +236,12 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
             cell.postImageView.subviews.forEach { $0.isHidden = true }
         }
     }
+    
+    func commentsViewController(_ controller: CommentsViewController, commentAddedAt index: IndexPath) {
+        let post = posts[index.row]
+        self.refreshPost(withId: post.id, at: index)
+    }
+    
 
 }
 

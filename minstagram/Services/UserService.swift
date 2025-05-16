@@ -8,10 +8,13 @@
 import Foundation
 
 class UserService {
+    
+    static let shared = UserService()
 
     private let profileURL = APIEndpoints.forUser.profile.url
     private let updateURL = APIEndpoints.forUser.update.url
     private let deleteURL = APIEndpoints.forUser.delete.url
+    private let alluserURL = APIEndpoints.forUser.all.url
 
     // MARK: - Get User Profile
     func getProfile<T: Decodable>(username: String, type: String, model: T.Type, completion: @escaping (Result<T, Error>) -> Void) {
@@ -51,26 +54,62 @@ class UserService {
             }
         }.resume()
     }
-
-    // MARK: - Update User Profile
-    func updateProfile(token: String, name: String?, bio: String?, profilePhoto: String?, completion: @escaping (Result<UserDetail, Error>) -> Void) {
-        guard let url = URL(string: updateURL) else {
+    
+    // MARK: - Get All Users
+    func getAllUsers(completion: @escaping (Result<[PostUser], Error>) -> Void) {
+        guard let url = URL(string: alluserURL) else {
             completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
             return
         }
         
+        let request = URLRequest(url: url)
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let data = data else {
+                completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
+                return
+            }
+            do {
+                let users = try JSONDecoder().decode([PostUser].self, from: data)
+                completion(.success(users))
+            } catch {
+                completion(.failure(error))
+            }
+        }
+        task.resume()
+    }
+
+    // MARK: - Update User Profile
+    func updateProfile(user: UserDetail, completion: @escaping (Result<UserDetail, Error>) -> Void) {
+        guard let url = URL(string: updateURL) else {
+            completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))
+            return
+        }
+        print(url)
+        
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let tokenData = KeychainHelper.shared.read(service: "com.minstagram.auth", account: "userToken"),
+           let token = String(data: tokenData, encoding: .utf8), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         
-        var body: [String: Any] = [:]
-        if let name = name { body["name"] = name }
-        if let bio = bio { body["bio"] = bio }
-        if let profilePhoto = profilePhoto { body["profilePhoto"] = profilePhoto }
+        let body: [String: Any] = ["name": user.name,
+                                   "username": user.username,
+                                   "bio": user.bio,
+                                   "profilePhoto": user.profilePhoto]
         
         do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+            let jsonData = try JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted])
+            request.httpBody = jsonData
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                print("JSON to be sent:\n\(jsonString)")
+            }
         } catch {
             completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "JSON oluşturulurken hata meydana geldi"])))
             return
@@ -95,6 +134,14 @@ class UserService {
                 completion(.failure(NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
                 return
             }
+            
+            if let str = String(data: data, encoding: .utf8) {
+                print("⛳️ JSON STRING:\n\(str)")
+            } else {
+                print("🚫 JSON could not be decoded into string")
+            }
+            print("Data length: \(data.count) bytes")
+
 
             do {
                 let updatedUser = try JSONDecoder().decode(UserDetail.self, from: data)

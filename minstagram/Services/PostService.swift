@@ -15,9 +15,10 @@ struct PostResponse<T: Codable>: Codable {
 class PostService {
     
     static let shared = PostService()
-    private let postBaseUrl = APIEndpoints.forPost.all.url
-    private let feedURL = APIEndpoints.forPost.feed.url
+    private let postBaseUrl = APIEndpoints.forPost.cud.url
     private let getPostURL = APIEndpoints.forPost.post.url
+    private let postsForUserURL = APIEndpoints.forPost.forUser.url
+    private let feedURL = APIEndpoints.forPost.feed.url
     private var token: String?
     
     private init() {
@@ -72,36 +73,17 @@ class PostService {
         }.resume()
     }
     
-    func fetchAllPosts(completion: @escaping (Result<[Post], Error>) -> Void) {
-        guard let url = URL(string: feedURL) else { return }
+    func updatePost(byId id: String, caption: String, completion: @escaping (Result<Post, Error>) -> Void) {
+        guard let url = URL(string: "\(postBaseUrl)/\(id)") else { return }
+        
         var request = URLRequest(url: url)
-        request.httpMethod = "GET"
+        request.httpMethod = "PATCH"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(token!)", forHTTPHeaderField: "Authorization")
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            guard let data = data, error == nil else {
-                completion(.failure(error!))
-                return
-            }
-            
-            do {
-                let posts = try JSONDecoder().decode([Post].self, from: data)
-                completion(.success(posts))
-            } catch {
-                completion(.failure(error))
-            }
-        }.resume()
-    }
-    
-    func fetchPost(byId id: String, completion: @escaping (Result<Post, Error>) -> Void) {
-        guard let url = URL(string: "\(getPostURL)/\(id)") else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue( "application/json", forHTTPHeaderField: "Content-Type")
-        if let token = token {
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
+        let body = ["caption": caption]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
+        
         URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data, error == nil else {
                 completion(.failure(error!))
@@ -143,17 +125,14 @@ class PostService {
         }.resume()
     }
     
-    func updatePost(byId id: String, caption: String, completion: @escaping (Result<Post, Error>) -> Void) {
-        guard let url = URL(string: "\(postBaseUrl)/\(id)") else { return }
-        
+    func fetchPost(byId id: String, completion: @escaping (Result<Post, Error>) -> Void) {
+        guard let url = URL(string: "\(getPostURL)/\(id)") else { return }
         var request = URLRequest(url: url)
-        request.httpMethod = "PATCH"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token!)", forHTTPHeaderField: "Authorization")
-        
-        let body = ["caption": caption]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
-        
+        request.httpMethod = "GET"
+        request.setValue( "application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data, error == nil else {
                 completion(.failure(error!))
@@ -169,5 +148,50 @@ class PostService {
         }.resume()
     }
     
+    func fetchPosts(byUserId userId: String, completion: @escaping (Result<[Post], Error>) -> Void) {
+        guard let url = URL(string: "\(postsForUserURL)/\(userId)") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, error == nil else {
+                completion(.failure(error!))
+                return
+            }
+            
+            do {
+                let posts = try JSONDecoder().decode([Post].self, from: data)
+                completion(.success(posts))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    func fetchAllPosts(completion: @escaping (Result<[Post], Error>) -> Void) {
+        guard let url = URL(string: feedURL) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token!)", forHTTPHeaderField: "Authorization")
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data, error == nil else {
+                completion(.failure(error!))
+                return
+            }
+            
+            do {
+                let posts = try JSONDecoder().decode([Post].self, from: data)
+                completion(.success(posts))
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
     
 }

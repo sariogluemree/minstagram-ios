@@ -14,10 +14,13 @@ enum UserProfile {
 
 struct UserDetail: Codable {
     let id: String
-    let username: String
-    var profilePhoto: String?
-    var name: String?
-    var bio: String?
+    var username: String
+    var profilePhoto: String
+    var name: String
+    var bio: String
+    var postsCount: Int
+    var followersCount: Int
+    var followingCount: Int
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
@@ -25,6 +28,9 @@ struct UserDetail: Codable {
         case profilePhoto
         case name
         case bio
+        case postsCount
+        case followersCount
+        case followingCount
     }
 }
 

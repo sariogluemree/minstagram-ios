@@ -16,6 +16,7 @@ class RowView: UIView {
     
     private let iconImageView = UIImageView()
     private let titleLabel = UILabel()
+    var tagsLabel: UILabel?
     private let actionImgView = UIImageView()
     private var tapAction: (() -> Void)?
     
@@ -55,6 +56,18 @@ class RowView: UIView {
         addSubview(iconImageView)
         addSubview(titleLabel)
         addSubview(actionImgView)
+        
+        if rowType == .settings {
+            let tagsLabel = UILabel()
+            tagsLabel.font = UIFont.systemFont(ofSize: 16)
+            tagsLabel.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(tagsLabel)
+            NSLayoutConstraint.activate([
+                tagsLabel.centerYAnchor.constraint(equalTo: self.centerYAnchor),
+                tagsLabel.trailingAnchor.constraint(equalTo: actionImgView.leadingAnchor, constant: -10)
+            ])
+            self.tagsLabel = tagsLabel
+        }
         
         // Auto Layout
         NSLayoutConstraint.activate([

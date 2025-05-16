@@ -13,7 +13,7 @@ class UploadService {
 
     private init() {}
 
-    func uploadImageToBackend(image: UIImage, completion: @escaping (String?) -> Void) {
+    func uploadImageToBackend(image: UIImage, folder: String, completion: @escaping (String?) -> Void) {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             completion(nil)
             return
@@ -29,6 +29,11 @@ class UploadService {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
 
         var body = Data()
+        
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"type\"\r\n\r\n".data(using: .utf8)!)
+        body.append("\(folder)\r\n".data(using: .utf8)!)
+        
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"image\"; filename=\"image.jpg\"\r\n".data(using: .utf8)!)
         body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)

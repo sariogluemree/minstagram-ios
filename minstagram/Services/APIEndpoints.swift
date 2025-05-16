@@ -17,7 +17,7 @@ import Foundation
 
 struct APIEndpoints {
     
-    private static let baseURL = "http://192.168.1.8:5001/api/"
+    private static let baseURL = "http://localhost:5001/api/"
     
     enum forAuth: String {
         case login = "login"
@@ -41,6 +41,7 @@ struct APIEndpoints {
         case profile = "profile"
         case update = "update"
         case delete = "delete"
+        case all = "all"
         
         var url: String {
             return APIEndpoints.baseURL + "users/" + self.rawValue
@@ -52,6 +53,7 @@ struct APIEndpoints {
         case unfollow = "unfollow"
         case following = "following"
         case followers = "followers"
+        case isFollowing = "isFollowing"
         
         var url: String {
             return APIEndpoints.baseURL + "follows/" + self.rawValue
@@ -67,9 +69,10 @@ struct APIEndpoints {
     }
     
     enum forPost: String {
-        case all = "/"
-        case feed = "/feed"
+        case cud = "/"
         case post = "/post"
+        case forUser = "/forUser"
+        case feed = "/feed"
         
         var url : String {
             return APIEndpoints.baseURL + "posts" + self.rawValue

@@ -13,6 +13,7 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     @IBOutlet weak var captionOkayBtn: UIBarButtonItem!
     let captionTextView = UITextView()
     
+    var tagPeopleRow: RowView?
     var selectedImage: UIImage?
     var caption: String?
     var debounceTimer: Timer?
@@ -22,12 +23,18 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        if tagList.count == 1 {
+        if let tabBarController = self.tabBarController as? MainTabBarController {
+            tabBarController.tabBar.isHidden = true
+        }
+        
+        if tagList.count == 0 {
+            tagPeopleRow?.tagsLabel?.text = ""
+        } else if tagList.count == 1 {
             if let tag = tagList.first {
-                print(tag.taggedUser.username)
+                tagPeopleRow?.tagsLabel?.text = tag.taggedUser.username
             }
-        } else if tagList.count > 1 {
-            print(tagList.count)
+        } else {
+            tagPeopleRow?.tagsLabel?.text = tagList.count.description
         }
         
     }
@@ -40,7 +47,10 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        setup()
+    }
+    
+    func setup() {
         let titleLabel = UILabel()
         titleLabel.text = "New Post"
         titleLabel.font = UIFont(name: "Helvetica Neue", size: 22)
@@ -83,9 +93,10 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
                 tagPeopleRow.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 0),
                 tagPeopleRow.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: 0),
             ])
+            self.tagPeopleRow = tagPeopleRow
             
         }
-    
+        
     }
     
     @objc func handleTapGesture(_ gesture: UITapGestureRecognizer) {
@@ -101,12 +112,16 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     
     @IBAction func shareBtnPressed(_ sender: UIButton) {
         
+        if let tabBarController = self.tabBarController as? MainTabBarController {
+            tabBarController.tabBar.isHidden = false
+        }
+        
         guard let image = newPostImgView.image else {
             print("No image to upload")
             return
         }
     
-        UploadService.shared.uploadImageToBackend(image: image) { imageUrl in
+        UploadService.shared.uploadImageToBackend(image: image, folder: "posts") { imageUrl in
             guard let url = imageUrl else {
                 print("Upload failed")
                 return
@@ -121,16 +136,32 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
                     print(post)
                     print("Post created successfully!")
                     DispatchQueue.main.async {
-                        let sb = UIStoryboard(name: "Main", bundle: nil)
-                        if let nav = sb.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
-                            self.view.window?.rootViewController = nav
-                            self.view.window?.makeKeyAndVisible()
+                        let homeSB = UIStoryboard(name: "Main", bundle: nil)
+                        if let homeNav = homeSB.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
+                            homeNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "house"), tag: 0)
+                            self.tabBarController?.viewControllers?[0] = homeNav
+                            self.tabBarController?.selectedIndex = 0
                         }
                     }
                 case .failure(let error):
                     print("Failed to create post: \(error)")
                 }
             }
+        }
+        
+    }
+    
+    @IBAction func backBtnPressed(_ sender: UIBarButtonItem) {
+        if let tabBarController = self.tabBarController as? MainTabBarController {
+            tabBarController.tabBar.isHidden = false
+            tabBarController.selectedIndex = tabBarController.previousIndex
+            
+            let newPostSB = UIStoryboard(name: "NewPost", bundle: nil)
+            if let newPostNav = newPostSB.instantiateViewController(withIdentifier: "NewPostNavigationController") as? UINavigationController {
+                newPostNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "plus.app"), tag: 1)
+                tabBarController.viewControllers?[1] = newPostNav
+            }
+            
         }
         
     }
@@ -152,14 +183,6 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
         }
         captionOkayBtn.isHidden = true
         view.endEditing(true)
-    }
-
-    @IBAction func backBtnPressed(_ sender: UIBarButtonItem) {
-        let sb = UIStoryboard(name: "Main", bundle: nil)
-        if let nav = sb.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
-            self.view.window?.rootViewController = nav
-            self.view.window?.makeKeyAndVisible()
-        }
     }
     
 }

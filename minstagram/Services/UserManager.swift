@@ -12,17 +12,37 @@ class UserManager {
     var activeUser: UserDetail?
     private init() {}
     
-    func getActiveUser() {
+    func getActiveUser(completion: @escaping (Bool) -> Void) {
         if let userData = UserDefaults.standard.data(forKey: "activeUser") {
             do {
                 let loggedInUser = try JSONDecoder().decode(UserDetail.self, from: userData)
-                print("loggedInUser: \(loggedInUser)")
-                UserManager.shared.activeUser = loggedInUser
+                UserService.shared.getProfile(username: loggedInUser.username, type: "public", model: UserDetail.self) { result in
+                    switch result {
+                    case .success(let userDetail):
+                        self.activeUser = userDetail
+                        print("loggedInUser: \(String(describing: self.activeUser))")
+                        completion(true)
+                    case .failure(let error):
+                        print(error)
+                        completion(false)
+                    }
+                }
             } catch {
                 print("Decoding hatası: \(error.localizedDescription)")
+                completion(false)
             }
+        } else {
+            completion(false)
         }
     }
+    
+    func updateActiveUser(user: UserDetail) {
+        if let encodedUser = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(encodedUser, forKey: "activeUser")
+        }
+        activeUser = user
+    }
+
     
     func getNewRegisteredUserName() -> String? {
         guard let userData = UserDefaults.standard.data(forKey: "newUser") else {

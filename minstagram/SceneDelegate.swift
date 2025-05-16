@@ -19,12 +19,24 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         let window = UIWindow(windowScene: windowScene)
         
+        //UserManager.shared.logOut()
+        
         if UserManager.shared.isLoggedIn() {
             print("user logged in")
-            UserManager.shared.getActiveUser()
-            let mainStoryboard = UIStoryboard(name: "Main", bundle: nil)
-            let homeVC = mainStoryboard.instantiateInitialViewController()
-            window.rootViewController = homeVC
+            UserManager.shared.getActiveUser { success in
+                DispatchQueue.main.async {
+                    if success {
+                        window.rootViewController = MainTabBarController()
+                    } else {
+                        // Hata olduysa login'e gönder
+                        let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
+                        let loginVC = authStoryboard.instantiateInitialViewController()!
+                        window.rootViewController = loginVC
+                    }
+                    self.window = window
+                    window.makeKeyAndVisible()
+                }
+            }
         } else {
             print("user not logged in")
             let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)

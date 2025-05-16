@@ -36,11 +36,7 @@ class LoginViewController: UIViewController {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if success {
-                    let sb = UIStoryboard(name: "Main", bundle: nil)
-                    if let nav = sb.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
-                        self.view.window?.rootViewController = nav
-                        self.view.window?.makeKeyAndVisible()
-                    }
+                    self.view.window?.rootViewController = MainTabBarController()
                 } else {
                     self.showAlert(message: errorMessage ?? "Giriş başarısız.")
                 }
