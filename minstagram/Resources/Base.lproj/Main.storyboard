@@ -54,8 +54,57 @@
                     <view key="view" contentMode="scaleToFill" id="gUa-G9-UwW">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="iLq-eO-hYR">
+                                <rect key="frame" x="0.0" y="162" width="393" height="622"/>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <prototypes>
+                                    <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="NotificationCell" rowHeight="78" id="p6J-tG-4WL" customClass="NotificationCell" customModule="minstagram" customModuleProvider="target">
+                                        <rect key="frame" x="0.0" y="50" width="393" height="78"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                        <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="p6J-tG-4WL" id="lLC-vf-B2o">
+                                            <rect key="frame" x="0.0" y="0.0" width="393" height="78"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                            <subviews>
+                                                <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="BGx-BF-kwQ">
+                                                    <rect key="frame" x="28" y="19" width="40" height="40"/>
+                                                    <constraints>
+                                                        <constraint firstAttribute="width" constant="40" id="CLL-7O-ilK"/>
+                                                        <constraint firstAttribute="height" constant="40" id="QGX-n9-E4P"/>
+                                                    </constraints>
+                                                </imageView>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" textAlignment="natural" lineBreakMode="wordWrap" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1Uo-Tu-Rcp">
+                                                    <rect key="frame" x="76" y="30.666666666666671" width="289" height="17"/>
+                                                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                                    <nil key="textColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                </label>
+                                            </subviews>
+                                            <constraints>
+                                                <constraint firstItem="BGx-BF-kwQ" firstAttribute="top" secondItem="lLC-vf-B2o" secondAttribute="topMargin" constant="8" id="9LM-Rm-3iG"/>
+                                                <constraint firstAttribute="trailingMargin" secondItem="1Uo-Tu-Rcp" secondAttribute="trailing" constant="8" id="GyU-20-0Pk"/>
+                                                <constraint firstItem="1Uo-Tu-Rcp" firstAttribute="leading" secondItem="BGx-BF-kwQ" secondAttribute="trailing" constant="8" id="Qdy-SL-H6h"/>
+                                                <constraint firstItem="BGx-BF-kwQ" firstAttribute="leading" secondItem="lLC-vf-B2o" secondAttribute="leadingMargin" constant="8" id="t6X-7H-0Sx"/>
+                                                <constraint firstAttribute="bottomMargin" secondItem="BGx-BF-kwQ" secondAttribute="bottom" constant="8" id="wAg-cs-hK2"/>
+                                                <constraint firstItem="1Uo-Tu-Rcp" firstAttribute="centerY" secondItem="lLC-vf-B2o" secondAttribute="centerY" id="xgD-uw-Z1m"/>
+                                            </constraints>
+                                        </tableViewCellContentView>
+                                        <connections>
+                                            <outlet property="notificationMessage" destination="1Uo-Tu-Rcp" id="QK7-VW-POE"/>
+                                            <outlet property="ppImgView" destination="BGx-BF-kwQ" id="0vO-rZ-FGG"/>
+                                        </connections>
+                                    </tableViewCell>
+                                </prototypes>
+                            </tableView>
+                        </subviews>
                         <viewLayoutGuide key="safeArea" id="Fpg-mj-rei"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="iLq-eO-hYR" firstAttribute="bottom" secondItem="Fpg-mj-rei" secondAttribute="bottom" id="CsW-h5-1OC"/>
+                            <constraint firstItem="iLq-eO-hYR" firstAttribute="trailing" secondItem="Fpg-mj-rei" secondAttribute="trailing" id="SOt-I5-TgD"/>
+                            <constraint firstItem="iLq-eO-hYR" firstAttribute="leading" secondItem="Fpg-mj-rei" secondAttribute="leading" id="Svo-ha-7cC"/>
+                            <constraint firstItem="iLq-eO-hYR" firstAttribute="top" secondItem="Fpg-mj-rei" secondAttribute="top" id="n6f-DV-DAy"/>
+                        </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="MCB-Sa-r08">
                         <barButtonItem key="leftBarButtonItem" title="Item" image="arrow.backward" catalog="system" id="wLa-hu-QWu">
@@ -65,10 +114,13 @@
                             </connections>
                         </barButtonItem>
                     </navigationItem>
+                    <connections>
+                        <outlet property="tableView" destination="iLq-eO-hYR" id="1wy-SQ-6He"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="bdu-6Z-AnR" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2202" y="51"/>
+            <point key="canvasLocation" x="2200.7633587786258" y="50.70422535211268"/>
         </scene>
         <!--Comments View Controller-->
         <scene sceneID="FHB-SV-615">

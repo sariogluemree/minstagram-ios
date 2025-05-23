@@ -141,31 +141,6 @@
             </objects>
             <point key="canvasLocation" x="1050.7462686567164" y="3.432494279176201"/>
         </scene>
-        <!--User Search View Controller-->
-        <scene sceneID="aod-b8-DSX">
-            <objects>
-                <viewController storyboardIdentifier="UserSearchViewController" id="32z-Tj-pAg" customClass="UserSearchViewController" customModule="minstagram" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" contentMode="scaleToFill" id="rVg-Js-GeR">
-                        <rect key="frame" x="0.0" y="0.0" width="402" height="874"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <viewLayoutGuide key="safeArea" id="KZh-Vo-YKc"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                    </view>
-                    <toolbarItems/>
-                    <navigationItem key="navigationItem" id="Juo-EM-EMc">
-                        <barButtonItem key="leftBarButtonItem" title="Item" image="arrow.backward" catalog="system" id="7h7-Cb-gjO">
-                            <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                            <connections>
-                                <action selector="back:" destination="32z-Tj-pAg" id="q1A-ZT-9v1"/>
-                            </connections>
-                        </barButtonItem>
-                    </navigationItem>
-                    <simulatedToolbarMetrics key="simulatedBottomBarMetrics"/>
-                </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="f7i-A0-6sT" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="1790" y="680"/>
-        </scene>
         <!--Share Profile View Controller-->
         <scene sceneID="2Cs-r1-40b">
             <objects>

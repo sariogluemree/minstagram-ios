@@ -17,6 +17,7 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
     var post: Post?
     var postIndex: IndexPath?
     var comments = [Comment]()
+    var commentIndex: Int?
     
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var addCommentView: UIView!
@@ -37,6 +38,21 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
         tableView.estimatedRowHeight = 120
         tableView.separatorStyle = .singleLine
         tableView.separatorColor = UIColor.lightGray
+        DispatchQueue.main.async {
+            if let commentIndex = self.commentIndex {
+                let commentIndexPath = IndexPath(row: commentIndex, section: 0)
+                self.tableView.scrollToRow(at: commentIndexPath, at: .top, animated: true)
+                let cell = self.tableView.cellForRow(at: commentIndexPath) as! CommentCell
+                cell.selectionStyle = .default
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.tableView.selectRow(at: commentIndexPath, animated: true, scrollPosition: .top)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.tableView.deselectRow(at: commentIndexPath, animated: true)
+                        cell.selectionStyle = .none
+                    }
+                }
+            }
+        }
         addCommentView.layer.borderWidth = 0.2
         addCommentView.layer.borderColor = UIColor.lightGray.cgColor
         addCommentView.clipsToBounds = true

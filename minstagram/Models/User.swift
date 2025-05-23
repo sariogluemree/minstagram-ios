@@ -12,7 +12,11 @@ enum UserProfile {
     case publicProfile(UserDetail)
 }
 
-struct UserDetail: Codable {
+protocol User {
+    var id: String { get }
+}
+
+struct UserDetail: User, Codable {
     let id: String
     var username: String
     var profilePhoto: String
@@ -34,7 +38,7 @@ struct UserDetail: Codable {
     }
 }
 
-struct PostUser: Codable {
+struct PostUser: User, Codable {
     let id: String
     let username: String
     let profilePhoto: String

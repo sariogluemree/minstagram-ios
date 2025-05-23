@@ -191,6 +191,15 @@ extension ProfileViewController: UICollectionViewDataSource {
         cell.configure(with: post.imageUrl)
         return cell
     }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let postIndex = indexPath.row
+        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "FeedViewController") as! FeedViewController
+        vc.mode = .userPosts
+        vc.postIndex = postIndex
+        vc.posts = posts
+        navigationController?.pushViewController(vc, animated: true)
+    }
 }
 
 extension ProfileViewController: ProfileActionViewDelegate {
@@ -210,8 +219,7 @@ extension ProfileViewController: ProfileActionViewDelegate {
     }
     
     func didTapShowRecommendations() {
-        let sb = UIStoryboard(name: "Profile", bundle: nil)
-        let searchVC = sb.instantiateViewController(withIdentifier: "UserSearchViewController") as! UserSearchViewController
+        let searchVC = UserSearchViewController()
         navigationController?.pushViewController(searchVC, animated: true)
     }
     

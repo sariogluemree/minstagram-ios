@@ -52,6 +52,8 @@ class LikeService {
                 return
             }
             
+            print(String(data: data, encoding: .utf8) ?? "no data")
+            
             do {
                 let like = try JSONDecoder().decode(Like.self, from: data)
                 completion(.success(like))

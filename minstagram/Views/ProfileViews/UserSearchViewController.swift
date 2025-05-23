@@ -20,9 +20,16 @@ class UserSearchViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        setupNavigationBar()
         setupSearchBar()
         setupTableView()
         fetchUsers()
+    }
+    
+    private func setupNavigationBar() {
+        let backBtn = UIBarButtonItem(image: UIImage(systemName: "arrow.backward"), style: .plain, target: self, action: #selector(back))
+        backBtn.tintColor = .black
+        navigationItem.leftBarButtonItem = backBtn
     }
     
     private func setupSearchBar() {
@@ -47,8 +54,6 @@ class UserSearchViewController: UIViewController {
     }
     
     private func fetchUsers() {
-        // Burada backend'den userları çekmen gerekiyor
-        // Şimdilik örnek kullanıcılar ekleyelim
         UserService.shared.getAllUsers { [weak self] result in
             switch result {
                 case .success(let users):
@@ -63,7 +68,7 @@ class UserSearchViewController: UIViewController {
         }
     }
     
-    @IBAction func back(_ sender: UIBarButtonItem) {
+    @objc private func back() {
         navigationController?.popViewController(animated: true)
     }
     

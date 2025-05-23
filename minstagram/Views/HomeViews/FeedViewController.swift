@@ -8,35 +8,128 @@
 import UIKit
 import SDWebImage
 
+enum FeedViewControllerMode {
+    case feed
+    case userPosts
+    case fromNotifications(AppNotification, String)
+}
+
 class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     
     @IBOutlet weak var tableView: UITableView!
     
+    var mode: FeedViewControllerMode = .feed
     var posts: [Post] = []
-    private let refreshControl = UIRefreshControl()
+    var postIndex: Int?
+    private var refreshControl: UIRefreshControl?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        switch mode {
+        case .feed:
+            setupNavigationBarForFeed()
+            setupTableView()
+            fetchAllPosts()
+        case .userPosts:
+            setupNavigationBarForUser()
+            setupTableView()
+            scrollToInitialPostIfNeeded()
+        case .fromNotifications(_, let userId):
+            setupNavigationBarForUser()
+            setupTableView()
+            fetchUserPosts(userId: userId)
+        }
+    }
+    
+    private func setupNavigationBarForFeed() {
         let titleLabel = UILabel()
         titleLabel.text = "Minstagram"
         titleLabel.font = UIFont(name: "Helvetica Neue", size: 22)
         titleLabel.sizeToFit()
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: titleLabel)
-        
+    }
+    
+    private func setupNavigationBarForUser() {
+        let titleLabel = UILabel()
+        titleLabel.text = "Posts"
+        titleLabel.font = UIFont(name: "Helvetica Neue", size: 22)
+        titleLabel.sizeToFit()
+        let backButtonItem = UIBarButtonItem(image: UIImage(systemName: "arrow.backward"), style: .plain, target: self, action: #selector(back))
+        backButtonItem.tintColor = .black
+        navigationItem.leftBarButtonItem = backButtonItem
+        let titleItem = UIBarButtonItem(customView: titleLabel)
+        navigationItem.leftBarButtonItems?.append(titleItem)
+        navigationItem.rightBarButtonItem = nil
+    }
+    
+    private func setupTableView() {
         let nib = UINib(nibName: "PostCell", bundle: nil)
         tableView.register(nib, forCellReuseIdentifier: "PostCell")
-        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.separatorStyle = .none
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 600
         
-        refreshControl.addTarget(self, action: #selector(refreshFeed), for: .valueChanged)
-        tableView.refreshControl = refreshControl
+        switch mode {
+        case .feed:
+            let rC = UIRefreshControl()
+            refreshControl = rC
+            self.refreshControl?.addTarget(self, action: #selector(refreshFeed), for: .valueChanged)
+            tableView.refreshControl = refreshControl
+        default:
+            break
+        }
         
-        PostService.shared.fetchAllPosts { result in
+    }
+    
+    private func scrollToInitialPostIfNeeded() {
+        guard self.tableView.numberOfRows(inSection: 0) > 0 else { return }
+
+        switch mode {
+        case .userPosts:
+            if let postIndex = self.postIndex {
+                let indexPath = IndexPath(row: postIndex, section: 0)
+                self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
+            }
+        case .fromNotifications(let notification, _):
+            let index = posts.firstIndex(where: { $0.id == notification.postId }) ?? 0
+            self.postIndex = index
+            let indexPath = IndexPath(row: index, section: 0)
+            self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                switch notification.type {
+                case .tag:
+                    if let cell = self.tableView.cellForRow(at: indexPath) as? PostCell {
+                        cell.toggleTagHidden(cell.taggedPeopleIcon)
+                    }
+                case .comment:
+                    let comments = self.posts[index].comments
+                    let commentIndex = comments.firstIndex(where: { $0.id == notification.comment?.id }) ?? 0
+                    if let commentsNav = UIStoryboard(name: "Main", bundle: nil)
+                        .instantiateViewController(withIdentifier: "CommentsNavController") as? UINavigationController,
+                       let commentsVC = commentsNav.viewControllers.first as? CommentsViewController {
+                        commentsVC.delegate = self
+                        commentsVC.postIndex = indexPath
+                        commentsVC.post = self.posts[index]
+                        commentsVC.commentIndex = commentIndex
+                        commentsNav.modalPresentationStyle = .pageSheet
+                        self.present(commentsNav, animated: true)
+                    }
+                default:
+                    break
+                }
+            }
+        default:
+            break
+        }
+    }
+    
+    private func fetchAllPosts() {
+        PostService.shared.fetchAllPosts { [weak self] result in
+            guard let self = self else { return }
             switch(result) {
             case .success(let posts):
                 self.posts = posts
@@ -47,7 +140,22 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
                 print("Error fetching posts: \(error)")
             }
         }
-        
+    }
+    
+    private func fetchUserPosts(userId: String) {
+        PostService.shared.fetchPosts(byUserId: userId){ [weak self] result in
+            guard let self = self else { return }
+            switch(result) {
+            case .success(let posts):
+                self.posts = posts
+                DispatchQueue.main.async {
+                    self.tableView.reloadData()
+                    self.scrollToInitialPostIfNeeded()
+                }
+            case .failure(let error):
+                print("Error fetching posts: \(error)")
+            }
+        }
     }
     
     @objc private func refreshFeed() {
@@ -68,18 +176,18 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
                     alert.addAction(UIAlertAction(title: "Tamam", style: .default))
                     self?.present(alert, animated: true)*/
                 }
-                self?.refreshControl.endRefreshing()
+                self?.refreshControl?.endRefreshing()
             }
         }
     }
     
     func refreshPost(withId id: String, at indexPath: IndexPath) {
-        PostService.shared.fetchPost(byId: id) { result in
+        PostService.shared.fetchPost(byId: id) { [weak self] result in
             switch result {
             case .success(let updatedPost):
                 DispatchQueue.main.async {
-                    self.posts[indexPath.row] = updatedPost
-                    self.tableView.reloadRows(at: [indexPath], with: .none)
+                    self?.posts[indexPath.row] = updatedPost
+                    self?.tableView.reloadRows(at: [indexPath], with: .none)
                 }
             case .failure(let error):
                 print(error)
@@ -91,6 +199,10 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
         let sb = UIStoryboard(name: "Main", bundle: nil)
         let vc = sb.instantiateViewController(withIdentifier: "NotificationsViewController") as! NotificationsViewController
         navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    @objc private func back() {
+        navigationController?.popViewController(animated: true)
     }
     
 }
@@ -124,7 +236,7 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
                         switch result {
                         case .success(let message):
                             self.posts.remove(at: indexPath.row)
-                            self.tableView.deleteRows(at: [indexPath], with	: .automatic)
+                            self.tableView.deleteRows(at: [indexPath], with    : .automatic)
                             print(message)
                         case .failure(let error):
                             print(error)

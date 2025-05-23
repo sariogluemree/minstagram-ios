@@ -108,5 +108,14 @@ struct APIEndpoints {
             return APIEndpoints.baseURL + "savedPosts/" + self.rawValue
         }
     }
+    
+    enum forNotification: String {
+        case get = "/"
+        case seen = "/seen"
+        
+        var url: String {
+            return APIEndpoints.baseURL + "notifications" + self.rawValue
+        }
+    }
 
 }

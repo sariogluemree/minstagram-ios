@@ -75,7 +75,6 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
 
     private func setupUI() {
         profileImageView.layer.cornerRadius = profileImageView.frame.height / 2
-        profileImageView.clipsToBounds = true
         profileImageView.backgroundColor = .lightGray
         postImageView.contentMode = .scaleAspectFill
         postImageView.clipsToBounds = true
@@ -196,18 +195,21 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         
         let comments = post.comments.prefix(2)
         let attributedComments = NSMutableAttributedString()
+        let normalAttrs: [NSAttributedString.Key: Any] = [.font: commentsLabel.font ?? UIFont.systemFont(ofSize: 14)]
         if comments.isEmpty {
-            attributedComments.append(NSAttributedString(string: "No comments"))
+            attributedComments.append(NSAttributedString(string: "No comments", attributes: normalAttrs))
         } else {
+            let boldAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: commentsLabel.font.pointSize)]
             for comment in comments {
                 let username = comment.user.username
                 let text = comment.text
-                let boldAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: commentsLabel.font.pointSize)]
-                let normalAttrs: [NSAttributedString.Key: Any] = [.font: commentsLabel.font ?? UIFont.systemFont(ofSize: 14)]
                 let boldUsername = NSAttributedString(string: "\(username): ", attributes: boldAttrs)
                 let normalText = NSAttributedString(string: "\(text)\n", attributes: normalAttrs)
                 attributedComments.append(boldUsername)
                 attributedComments.append(normalText)
+            }
+            if attributedComments.length > 0 {
+                attributedComments.deleteCharacters(in: NSRange(location: attributedComments.length - 1, length: 1))
             }
         }
         commentsLabel.attributedText = attributedComments
