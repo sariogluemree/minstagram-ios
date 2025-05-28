@@ -40,6 +40,7 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
+                        <outlet property="notificationsBtn" destination="4db-xb-icR" id="EYp-Uh-SXF"/>
                         <outlet property="tableView" destination="FkD-1l-uUa" id="vHP-5G-2mO"/>
                     </connections>
                 </viewController>

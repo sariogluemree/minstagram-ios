@@ -80,13 +80,9 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
            let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt {
             let keyboardHeight = keyboardFrame.height
             self.addCommentViewBottomConstraint.constant = -keyboardHeight + bottomInset
-            print("keyboardHeight: \(keyboardHeight)")
-            print(addCommentViewBottomConstraint.constant)
-            print("y:", self.addCommentView.frame.origin.y)
             UIView.animate(withDuration: duration, delay: 0, options: UIView.AnimationOptions(rawValue: curve << 16), animations: {
                 self.view.layoutIfNeeded()
             }, completion: nil)
-            print("new y:", self.addCommentView.frame.origin.y)
         }
     }
 

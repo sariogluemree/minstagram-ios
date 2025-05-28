@@ -66,6 +66,7 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
             NotificationService.shared.markAsSeen(notificationId: notification.id) { result in
                 switch result {
                 case .success(let success):
+                    self.notifications[indexPath.row].seen = true
                     print(success)
                 case .failure(let error):
                     print(error)

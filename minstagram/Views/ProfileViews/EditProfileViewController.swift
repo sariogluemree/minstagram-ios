@@ -21,6 +21,8 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
     @IBOutlet weak var profileImgView: UIImageView!
     @IBOutlet weak var changePPBtn: UIButton!
     
+    var currentImgUrl: String?
+    
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
@@ -51,6 +53,7 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
                 placeholderImage: UIImage(named: "placeholder")
             )
         }
+        currentImgUrl = ppUrl
     }
     
     private func setupRows(user: UserDetail) {
@@ -100,8 +103,8 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
                                 return
                             }
                             self.profileImgView.image = selectedImage
-                            NotificationCenter.default.post(name: .editProfileDidChange, object: nil, userInfo: ["imageUrl": url])
-                            self.user?.profilePhoto = url
+                            self.currentImgUrl = url
+                            NotificationCenter.default.post(name: .editProfileDidChange, object: nil)
                         }
                     }
                 }
@@ -115,11 +118,11 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
     
     @objc private func checkIfValuesChanged(_ notification: Notification) {
         guard let user = user else { return }
-        let newImage = notification.userInfo?["imageUrl"] as? String
+
         let isChanged = nameRow.value != user.name ||
-                        usernameRow.value != user.username ||
-                        bioRow.value != user.bio ||
-                        newImage != user.profilePhoto
+        usernameRow.value != user.username ||
+        bioRow.value != user.bio ||
+        currentImgUrl != user.profilePhoto
         
         navigationItem.rightBarButtonItem?.isEnabled = isChanged
         navigationItem.rightBarButtonItem?.tintColor = isChanged ? .systemBlue : .systemGray
@@ -131,7 +134,7 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
         user.name = nameRow.value
         user.username = usernameRow.value
         user.bio = bioRow.value
-        user.profilePhoto = self.user!.profilePhoto
+        user.profilePhoto = currentImgUrl ?? user.profilePhoto
         
         UserService.shared.updateProfile(user: user) { [weak self] result in
             DispatchQueue.main.async {

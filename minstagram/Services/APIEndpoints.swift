@@ -112,6 +112,7 @@ struct APIEndpoints {
     enum forNotification: String {
         case get = "/"
         case seen = "/seen"
+        case hasunseen = "/has-unseen"
         
         var url: String {
             return APIEndpoints.baseURL + "notifications" + self.rawValue

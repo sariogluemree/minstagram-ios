@@ -17,11 +17,13 @@ enum FeedViewControllerMode {
 class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var notificationsBtn: UIBarButtonItem!
     
     var mode: FeedViewControllerMode = .feed
     var posts: [Post] = []
     var postIndex: Int?
     private var refreshControl: UIRefreshControl?
+    private var notificationCheckTimer: Timer?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,6 +33,8 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
             setupNavigationBarForFeed()
             setupTableView()
             fetchAllPosts()
+            checkUnseenNotificationsAndUpdateUI()
+            startNotificationCheckTimer()
         case .userPosts:
             setupNavigationBarForUser()
             setupTableView()
@@ -40,6 +44,20 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
             setupTableView()
             fetchUserPosts(userId: userId)
         }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if case .feed = mode {
+            checkUnseenNotificationsAndUpdateUI()
+            startNotificationCheckTimer()
+        }
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        notificationCheckTimer?.invalidate()
+        notificationCheckTimer = nil
     }
     
     private func setupNavigationBarForFeed() {
@@ -195,16 +213,86 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
         }
     }
     
-    @IBAction func showNotifications(_ sender: UIBarButtonItem) {
-        let sb = UIStoryboard(name: "Main", bundle: nil)
-        let vc = sb.instantiateViewController(withIdentifier: "NotificationsViewController") as! NotificationsViewController
-        navigationController?.pushViewController(vc, animated: true)
-    }
-    
     @objc private func back() {
         navigationController?.popViewController(animated: true)
     }
     
+    @IBAction func showNotifications(_ sender: UIBarButtonItem) {
+        let sb = UIStoryboard(name: "Main", bundle: nil)
+        let vc = sb.instantiateViewController(withIdentifier: "NotificationsViewController") as! NotificationsViewController
+        navigationController?.pushViewController(vc, animated: true)
+        removeRedDotFromBarButton()
+    }
+    
+    func checkUnseenNotificationsAndUpdateUI() {
+        NotificationService.shared.hasUnseenNotifications { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let hasUnseen):
+                    if hasUnseen {
+                        self.addRedDotToBarButton()
+                    } else {
+                        self.removeRedDotFromBarButton()
+                    }
+                case .failure(let error):
+                    print("❌ Bildirim kontrolü hatası:", error.localizedDescription)
+                }
+            }
+        }
+    }
+    
+    func updateNotificationDot(hasUnseen: Bool) {
+        if hasUnseen {
+            addRedDotToBarButton()
+        } else {
+            removeRedDotFromBarButton()
+        }
+    }
+    
+    private func addRedDotToBarButton() {
+        // Önce mevcut kırmızı noktayı kaldır
+        removeRedDotFromBarButton()
+        
+        // Yeni bir view oluştur
+        let redDotSize: CGFloat = 10
+        let redDot = UIView(frame: CGRect(x: 0, y: 0, width: redDotSize, height: redDotSize))
+        redDot.backgroundColor = .systemRed
+        redDot.layer.cornerRadius = redDotSize / 2
+        redDot.clipsToBounds = true
+        redDot.tag = 999
+        
+        // Kırmızı noktayı tıklanabilir yap
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(showNotifications(_:)))
+        redDot.isUserInteractionEnabled = true
+        redDot.addGestureRecognizer(tapGesture)
+        
+        // Bar button item'ın view'ını bul
+        if let buttonView = notificationsBtn.value(forKey: "view") as? UIView {
+            buttonView.addSubview(redDot)
+            
+            // Kırmızı noktayı sağ üst köşeye yerleştir
+            redDot.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                redDot.bottomAnchor.constraint(equalTo: buttonView.bottomAnchor, constant: -10),
+                redDot.trailingAnchor.constraint(equalTo: buttonView.trailingAnchor, constant: -10),
+                redDot.widthAnchor.constraint(equalToConstant: redDotSize),
+                redDot.heightAnchor.constraint(equalToConstant: redDotSize)
+            ])
+        }
+    }
+    
+    private func removeRedDotFromBarButton() {
+        if let buttonView = notificationsBtn.value(forKey: "view") as? UIView {
+            buttonView.viewWithTag(999)?.removeFromSuperview()
+        }
+    }
+    
+    private func startNotificationCheckTimer() {
+        notificationCheckTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            self?.checkUnseenNotificationsAndUpdateUI()
+        }
+    }
+
 }
 
 extension FeedViewController: UITableViewDelegate, UITableViewDataSource {

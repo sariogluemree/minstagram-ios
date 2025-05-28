@@ -13,6 +13,7 @@ class TagPeopleViewController: UIViewController {
     
     @IBOutlet weak var newPostImgView: UIImageView!
     @IBOutlet weak var tagsTableView: UITableView!
+    @IBOutlet weak var tagsTitleLabel: UILabel!
     
     var searchBar: UISearchBar!
     var searchResultsTableView: UITableView!
@@ -82,7 +83,6 @@ class TagPeopleViewController: UIViewController {
         searchResultsTableView = UITableView(frame: CGRect(x: 0, y: 88, width: self.view.frame.width, height: 416))
         searchResultsTableView.delegate = self
         searchResultsTableView.dataSource = self
-        searchResultsTableView.backgroundColor = .lightGray
         searchResultsTableView.isHidden = true
         view.addSubview(searchResultsTableView)
     }
@@ -221,13 +221,14 @@ extension TagPeopleViewController: UITableViewDelegate, UITableViewDataSource {
         if tableView == searchResultsTableView {
             return isSearching ? filteredFollowers.count : 0
         }
+        tagsTitleLabel.isHidden = tagList.isEmpty
+        hintLabel.isHidden = !tagList.isEmpty
         return tagList.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         if tableView == searchResultsTableView {
             let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") ?? UITableViewCell(style: .default, reuseIdentifier: "Cell")
-            cell.backgroundColor = .green
 
             cell.textLabel?.text = filteredFollowers[indexPath.row].username
             return cell
@@ -240,9 +241,6 @@ extension TagPeopleViewController: UITableViewDelegate, UITableViewDataSource {
                 if let tagView = self.tagViewsDict[removedTag.taggedUser.username] {
                     tagView.removeFromSuperview()
                     self.tagViewsDict.removeValue(forKey: removedTag.taggedUser.username)
-                }
-                if self.tagList.isEmpty {
-                    self.hintLabel.isHidden = false
                 }
                 self.tagsTableView.reloadData()
                 self.followerList.append(taggedUser)

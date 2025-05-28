@@ -38,11 +38,16 @@ struct AppNotification: Codable {
     }
 }
 
+struct UnseenNotificationResponse: Codable {
+    let hasUnseen: Bool
+}
+
 class NotificationService {
     
     static let shared = NotificationService()
     private let getUrl = APIEndpoints.forNotification.get.url
     private let markSeenUrl = APIEndpoints.forNotification.seen.url
+    private let hasUnseenUrl = APIEndpoints.forNotification.hasunseen.url
     private var token: String?
     
     private init() {
@@ -125,5 +130,42 @@ class NotificationService {
             completion(.success(decoded.success))
         }.resume()
     }
+    
+    func hasUnseenNotifications(completion: @escaping (Result<Bool, Error>) -> Void) {
+        guard let url = URL(string: hasUnseenUrl) else {
+            completion(.failure(NSError(domain: "InvalidURL", code: -1)))
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "Network", code: 500, userInfo: [NSLocalizedDescriptionKey: "No data"])))
+                return
+            }
+            
+            do {
+                let result = try JSONDecoder().decode(UnseenNotificationResponse.self, from: data)
+                completion(.success(result.hasUnseen))
+            } catch {
+                print("Decode error: \(error)")
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print("Received JSON: \(jsonString)")
+                }
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+
     
 }

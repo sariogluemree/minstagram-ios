@@ -35,6 +35,10 @@ class EmailInputViewController: UIViewController {
         self.navigationController?.popViewController(animated: true)
     }
     
+    @IBAction func backToLogin(_ sender: UIButton) {
+        self.navigationController?.popViewController(animated: true)
+    }
+    
     private func showAlert(message: String) {
         let alert = UIAlertController(title: "Hata", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Tamam", style: .default))

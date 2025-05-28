@@ -55,14 +55,18 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         likeButton.tintColor = .black
         bookmarkButton.setImage(UIImage(systemName: "bookmark"), for: .normal)
         bookmarkButton.tintColor = .black
+        commentsLabel.attributedText = nil
+        commentsLabel.font = .systemFont(ofSize: 14)
     }
     
     private func setupTapGesture() {
-        let profileTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleProfileTap))
+        let profileImageTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleProfileTap))
         profileImageView.isUserInteractionEnabled = true
-        profileImageView.addGestureRecognizer(profileTapGesture)
+        profileImageView.addGestureRecognizer(profileImageTapGesture)
+        
+        let usernameTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleProfileTap))
         usernameLabel.isUserInteractionEnabled = true
-        usernameLabel.addGestureRecognizer(profileTapGesture)
+        usernameLabel.addGestureRecognizer(usernameTapGesture)
         
         let captionTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleCaptionTap))
         captionLabel.isUserInteractionEnabled = true
@@ -195,11 +199,11 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         
         let comments = post.comments.prefix(2)
         let attributedComments = NSMutableAttributedString()
-        let normalAttrs: [NSAttributedString.Key: Any] = [.font: commentsLabel.font ?? UIFont.systemFont(ofSize: 14)]
+        let normalAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 13)]
         if comments.isEmpty {
             attributedComments.append(NSAttributedString(string: "No comments", attributes: normalAttrs))
         } else {
-            let boldAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: commentsLabel.font.pointSize)]
+            let boldAttrs: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 13)]
             for comment in comments {
                 let username = comment.user.username
                 let text = comment.text
