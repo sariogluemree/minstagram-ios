@@ -117,35 +117,28 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
         }
         
         guard let image = newPostImgView.image else {
-            print("No image to upload")
             return
         }
-    
-        UploadService.shared.uploadImageToBackend(image: image, folder: "posts") { imageUrl in
-            guard let url = imageUrl else {
-                print("Upload failed")
-                return
-            }
-            
-            let caption = self.caption ?? ""
-            let tags = self.tagList
-
-            PostService.shared.createPost(imageUrl: url, caption: caption, tags: tags) { result in
-                switch result {
-                case .success(let post):
-                    print(post)
-                    print("Post created successfully!")
-                    DispatchQueue.main.async {
-                        let homeSB = UIStoryboard(name: "Main", bundle: nil)
-                        if let homeNav = homeSB.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
-                            homeNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "house"), tag: 0)
-                            self.tabBarController?.viewControllers?[0] = homeNav
-                            self.tabBarController?.selectedIndex = 0
-                        }
-                    }
-                case .failure(let error):
-                    print("Failed to create post: \(error)")
+        
+        let caption = self.caption ?? ""
+        let tags = self.tagList
+        
+        Task { [weak self] in
+            do {
+                let form = try MultipartFormData.image(image, type: UploadFolder.posts)
+                let upload = try await NetworkManager.shared.upload(UploadEndpoint.image, form: form, as: UploadResponse.self)
+                let request = CreatePostRequest(imageUrl: upload.url, caption: caption, tags: tags)
+                _ = try await NetworkManager.shared.request(PostEndpoint.create(request), as: Post.self)
+                
+                guard let self = self else { return }
+                let homeSB = UIStoryboard(name: "Main", bundle: nil)
+                if let homeNav = homeSB.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
+                    homeNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "house"), tag: 0)
+                    self.tabBarController?.viewControllers?[0] = homeNav
+                    self.tabBarController?.selectedIndex = 0
                 }
+            } catch {
+                self?.showError(error)
             }
         }
         

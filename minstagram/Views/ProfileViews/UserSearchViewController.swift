@@ -54,16 +54,14 @@ class UserSearchViewController: UIViewController {
     }
     
     private func fetchUsers() {
-        UserService.shared.getAllUsers { [weak self] result in
-            switch result {
-                case .success(let users):
-                DispatchQueue.main.async {
-                    self?.users = users
-                    self?.filteredUsers = users
-                    self?.tableView.reloadData()
-                }
-            case .failure(let error):
-                print("Error: \(error)")
+        Task { [weak self] in
+            do {
+                let users = try await NetworkManager.shared.request(UserEndpoint.all, as: [PostUser].self)
+                self?.users = users
+                self?.filteredUsers = users
+                self?.tableView.reloadData()
+            } catch {
+                self?.showError(error)
             }
         }
     }
@@ -92,18 +90,16 @@ extension UserSearchViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: false)
         let user = filteredUsers[indexPath.row]
-        UserService.shared.getProfile(username: user.username, type: "public", model: UserDetail.self) { result in
-            switch result {
-            case .success(let userDetail):
-                DispatchQueue.main.async {
-                    let sb = UIStoryboard(name: "Profile", bundle: nil)
-                    let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
-                    vc.user = userDetail
-                    vc.backBtn.isHidden = false
-                    self.navigationController?.pushViewController(vc, animated: true)
-                }
-            case .failure(let error):
-                print(error)
+        Task { [weak self] in
+            do {
+                let userDetail = try await NetworkManager.shared.request(UserEndpoint.profile(username: user.username), as: UserDetail.self)
+                let sb = UIStoryboard(name: "Profile", bundle: nil)
+                let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                vc.user = userDetail
+                vc.backBtn.isHidden = false
+                self?.navigationController?.pushViewController(vc, animated: true)
+            } catch {
+                self?.showError(error)
             }
         }
     }

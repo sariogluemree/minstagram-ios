@@ -98,19 +98,19 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
     
     @IBAction func shareComment(_ sender: UIButton) {
         guard let post = post, let postIndex = postIndex else {return}
-        if let comment = commentTextField.text, !comment.isEmpty {
-            CommentService.shared.addComment(postId: post.id, text: comment) { success, comment, errorMessage in
-                DispatchQueue.main.async {
-                    if success, let comment = comment {
-                        self.comments.append(comment)
-                        self.tableView.reloadData()
-                        self.commentTextField.text = ""
-                        self.delegate?.commentsViewController(self, commentAddedAt: postIndex)
-                        self.commentTextField.resignFirstResponder()
-                    } else {
-                        //şimdilik boş.
-                    }
-                }
+        guard let text = commentTextField.text, !text.isEmpty else { return }
+        
+        Task { [weak self] in
+            do {
+                let comment = try await NetworkManager.shared.request(CommentEndpoint.create(postId: post.id, text: text), as: Comment.self)
+                guard let self = self else { return }
+                self.comments.append(comment)
+                self.tableView.reloadData()
+                self.commentTextField.text = ""
+                self.delegate?.commentsViewController(self, commentAddedAt: postIndex)
+                self.commentTextField.resignFirstResponder()
+            } catch {
+                self?.showError(error)
             }
         }
     }

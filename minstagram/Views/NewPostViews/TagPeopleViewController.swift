@@ -26,8 +26,6 @@ class TagPeopleViewController: UIViewController {
     var tagViewsDict: [String: UIView] = [:]  // tag balonlarını tutuyor
     var tagList: [Tag] = []
     
-    let userService = UserService()
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -90,28 +88,26 @@ class TagPeopleViewController: UIViewController {
     private func fetchFollowers() {
         guard let activeUser = UserManager.shared.activeUser else { return }
         
-        FollowService.shared.getFollowers(userId: activeUser.username) { [weak self] (followers, success, message) in
-            DispatchQueue.main.async {
+        Task { [weak self] in
+            do {
+                let followers = try await NetworkManager.shared.request(FollowEndpoint.followers(username: activeUser.username), as: [PostUser].self)
                 guard let self = self else { return }
-                if success {
-                    self.followerList = followers ?? []
-                    if !self.tagList.isEmpty {
-                        for tag in self.tagList {
-                            let point = CGPoint(x: tag.position.x, y: tag.position.y)
-                            self.addTagBalloon(at: point, username: tag.taggedUser.username)
-                            for i in 0..<self.followerList.count {
-                                if self.followerList[i].username == tag.taggedUser.username {
-                                    self.followerList.remove(at: i)
-                                    break
-                                }
+                self.followerList = followers
+                if !self.tagList.isEmpty {
+                    for tag in self.tagList {
+                        let point = CGPoint(x: tag.position.x, y: tag.position.y)
+                        self.addTagBalloon(at: point, username: tag.taggedUser.username)
+                        for i in 0..<self.followerList.count {
+                            if self.followerList[i].username == tag.taggedUser.username {
+                                self.followerList.remove(at: i)
+                                break
                             }
-                            self.tagViewsDict[tag.taggedUser.username] = self.tagView
                         }
+                        self.tagViewsDict[tag.taggedUser.username] = self.tagView
                     }
-
-                } else {
-                    self.showAlert(message: message ?? "Failed to load followers")
                 }
+            } catch {
+                self?.showError(error)
             }
         }
     }
@@ -172,12 +168,6 @@ class TagPeopleViewController: UIViewController {
                 }
             }
         }
-    }
-    
-    private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Hata", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-        present(alert, animated: true)
     }
     
 }
@@ -270,27 +260,23 @@ extension TagPeopleViewController: UITableViewDelegate, UITableViewDataSource {
             self.navigationController?.setNavigationBarHidden(false, animated: true)
             newPostImgView.isHidden = false
             
-            userService.getProfile(username: username, type: "post", model: PostUser.self) { [weak self] result in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    switch result {
-                    case .success(let taggedUser):
-                        let x = self.tagView!.frame.origin.x
-                        let y = self.tagView!.frame.origin.y
-                        let position = Position(x: x, y: y)
-                        let tag = Tag(taggedUser: taggedUser, position: position)
-                        self.tagList.append(tag)
-                        self.tagViewsDict[username] = self.tagView
-                        self.tagsTableView.reloadData()
-                        for i in 0..<self.followerList.count {
-                            if self.followerList[i].username == username {
-                                self.followerList.remove(at: i)
-                                break
-                            }
+            Task { [weak self] in
+                do {
+                    let taggedUser = try await NetworkManager.shared.request(UserEndpoint.postProfile(username: username), as: PostUser.self)
+                    guard let self = self, let tagView = self.tagView else { return }
+                    let position = Position(x: tagView.frame.origin.x, y: tagView.frame.origin.y)
+                    let tag = Tag(taggedUser: taggedUser, position: position)
+                    self.tagList.append(tag)
+                    self.tagViewsDict[username] = tagView
+                    self.tagsTableView.reloadData()
+                    for i in 0..<self.followerList.count {
+                        if self.followerList[i].username == username {
+                            self.followerList.remove(at: i)
+                            break
                         }
-                    case .failure(let error):
-                        self.showAlert(message: error.localizedDescription)
                     }
+                } catch {
+                    self?.showError(error)
                 }
             }
         } else {

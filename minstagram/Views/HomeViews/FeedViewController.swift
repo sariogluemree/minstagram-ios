@@ -146,70 +146,50 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     }
     
     private func fetchAllPosts() {
-        PostService.shared.fetchAllPosts { [weak self] result in
-            guard let self = self else { return }
-            switch(result) {
-            case .success(let posts):
-                self.posts = posts
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
-                }
-            case .failure(let error):
-                print("Error fetching posts: \(error)")
+        Task { [weak self] in
+            do {
+                let posts = try await NetworkManager.shared.request(PostEndpoint.feed, as: [Post].self)
+                self?.posts = posts
+                self?.tableView.reloadData()
+            } catch {
+                self?.showError(error)
             }
         }
     }
     
     private func fetchUserPosts(userId: String) {
-        PostService.shared.fetchPosts(byUserId: userId){ [weak self] result in
-            guard let self = self else { return }
-            switch(result) {
-            case .success(let posts):
-                self.posts = posts
-                DispatchQueue.main.async {
-                    self.tableView.reloadData()
-                    self.scrollToInitialPostIfNeeded()
-                }
-            case .failure(let error):
-                print("Error fetching posts: \(error)")
+        Task { [weak self] in
+            do {
+                let posts = try await NetworkManager.shared.request(PostEndpoint.forUser(userId: userId), as: [Post].self)
+                self?.posts = posts
+                self?.tableView.reloadData()
+                self?.scrollToInitialPostIfNeeded()
+            } catch {
+                self?.showError(error)
             }
         }
     }
     
     @objc private func refreshFeed() {
-        PostService.shared.fetchAllPosts { [weak self] result in
-            DispatchQueue.main.async {
-                switch(result) {
-                case .success(let posts):
-                    self?.posts = posts
-                    self?.tableView.reloadData()
-                case .failure(let error):
-                    print(error)
-                    //alert örneği
-                    /*let alert = UIAlertController(
-                        title: "Hata",
-                        message: "Gönderiler yüklenirken bir hata oluştu: \(error.localizedDescription)",
-                        preferredStyle: .alert
-                    )
-                    alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-                    self?.present(alert, animated: true)*/
-                }
-                self?.refreshControl?.endRefreshing()
+        Task { [weak self] in
+            do {
+                let posts = try await NetworkManager.shared.request(PostEndpoint.feed, as: [Post].self)
+                self?.posts = posts
+                self?.tableView.reloadData()
+            } catch {
+                self?.showError(error)
             }
+            self?.refreshControl?.endRefreshing()
         }
     }
     
     func refreshPost(withId id: String, at indexPath: IndexPath) {
-        PostService.shared.fetchPost(byId: id) { [weak self] result in
-            switch result {
-            case .success(let updatedPost):
-                DispatchQueue.main.async {
-                    self?.posts[indexPath.row] = updatedPost
-                    self?.tableView.reloadRows(at: [indexPath], with: .none)
-                }
-            case .failure(let error):
-                print(error)
-            }
+        Task { [weak self] in
+            // Sessiz yenileme: hata olursa mevcut hücre olduğu gibi kalır.
+            guard let updatedPost = try? await NetworkManager.shared.request(PostEndpoint.detail(id: id), as: Post.self),
+                  let self = self, self.posts.indices.contains(indexPath.row) else { return }
+            self.posts[indexPath.row] = updatedPost
+            self.tableView.reloadRows(at: [indexPath], with: .none)
         }
     }
     
@@ -225,19 +205,10 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     }
     
     func checkUnseenNotificationsAndUpdateUI() {
-        NotificationService.shared.hasUnseenNotifications { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let hasUnseen):
-                    if hasUnseen {
-                        self.addRedDotToBarButton()
-                    } else {
-                        self.removeRedDotFromBarButton()
-                    }
-                case .failure(let error):
-                    print("❌ Bildirim kontrolü hatası:", error.localizedDescription)
-                }
-            }
+        Task { [weak self] in
+            // Periyodik kontrol: hata kullanıcıya gösterilmez (NetworkLogger DEBUG'da loglar).
+            guard let response = try? await NetworkManager.shared.request(NotificationEndpoint.hasUnseen, as: HasUnseenResponse.self) else { return }
+            self?.updateNotificationDot(hasUnseen: response.hasUnseen)
         }
     }
     
@@ -319,16 +290,14 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
                 //edit sayfası yap.
             }))
             actionSheet.addAction(UIAlertAction(title: "Delete post", style: .default, handler: { _ in
-                PostService.shared.deletePost(byId: post.id) { result in
-                    DispatchQueue.main.async {
-                        switch result {
-                        case .success(let message):
-                            self.posts.remove(at: indexPath.row)
-                            self.tableView.deleteRows(at: [indexPath], with    : .automatic)
-                            print(message)
-                        case .failure(let error):
-                            print(error)
-                        }
+                Task { @MainActor [weak self] in
+                    do {
+                        try await NetworkManager.shared.request(PostEndpoint.delete(id: post.id))
+                        guard let self = self, let index = self.posts.firstIndex(where: { $0.id == post.id }) else { return }
+                        self.posts.remove(at: index)
+                        self.tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
+                    } catch {
+                        self?.showError(error)
                     }
                 }
             }))
@@ -346,66 +315,43 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
             self.present(actionSheet, animated: true, completion: nil)
         }
         
-        cell.onLikeTapped = {
-            if post.isLiked {
-                LikeService.shared.unlikePost(postId: post.id) { result in
-                    switch result {
-                    case .success(let message):
-                        print(message)
-                        self.refreshPost(withId: post.id, at: indexPath)
-                    case .failure(let error):
-                        print(error)
-                    }
-                }
-            } else {
-                LikeService.shared.likePost(postId: post.id) { result in
-                    switch result {
-                    case .success(_):
-                        print("Post liked")
-                        self.refreshPost(withId: post.id, at: indexPath)
-                    case .failure(let error):
-                        print(error)
-                    }
+        cell.onLikeTapped = { [weak self] in
+            guard let self = self else { return }
+            let endpoint: LikeEndpoint = post.isLiked ? .unlike(postId: post.id) : .like(postId: post.id)
+            Task { @MainActor [weak self] in
+                do {
+                    try await NetworkManager.shared.request(endpoint)
+                    self?.refreshPost(withId: post.id, at: indexPath)
+                } catch {
+                    self?.showError(error)
                 }
             }
         }
-        cell.onSaveTapped = {
-            if post.isSaved {
-                SavedPostService.shared.unsavePost(postId: post.id) { result in
-                    switch result {
-                    case .success(let message):
-                        print(message)
-                        self.refreshPost(withId: post.id, at: indexPath)
-                    case .failure(let error):
-                        print(error)
-                    }
-                }
-            } else {
-                SavedPostService.shared.savePost(postId: post.id) { result in
-                    switch result {
-                    case .success(_):
-                        print("Post saved")
-                        self.refreshPost(withId: post.id, at: indexPath)
-                    case .failure(let error):
-                        print(error)
-                    }
+        cell.onSaveTapped = { [weak self] in
+            guard let self = self else { return }
+            let endpoint: SavedPostEndpoint = post.isSaved ? .unsave(postId: post.id) : .save(postId: post.id)
+            Task { @MainActor [weak self] in
+                do {
+                    try await NetworkManager.shared.request(endpoint)
+                    self?.refreshPost(withId: post.id, at: indexPath)
+                } catch {
+                    self?.showError(error)
                 }
             }
         }
         
-        cell.onGoProfileTapped = {
-            UserService.shared.getProfile(username: post.user.username, type: "public", model: UserDetail.self) { result in
-                switch result {
-                case .success(let detailedUser):
-                    DispatchQueue.main.async {
-                        let sb = UIStoryboard(name: "Profile", bundle: nil)
-                        let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
-                        vc.user = detailedUser
-                        vc.backBtn.isHidden = false
-                        self.navigationController?.pushViewController(vc, animated: true)
-                    }
-                case .failure(let error):
-                    print(error)
+        cell.onGoProfileTapped = { [weak self] in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                do {
+                    let detailedUser = try await NetworkManager.shared.request(UserEndpoint.profile(username: post.user.username), as: UserDetail.self)
+                    let sb = UIStoryboard(name: "Profile", bundle: nil)
+                    let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                    vc.user = detailedUser
+                    vc.backBtn.isHidden = false
+                    self?.navigationController?.pushViewController(vc, animated: true)
+                } catch {
+                    self?.showError(error)
                 }
             }
         }

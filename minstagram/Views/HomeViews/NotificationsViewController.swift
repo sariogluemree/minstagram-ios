@@ -21,15 +21,13 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
         tableView.delegate = self
         tableView.dataSource = self
         
-        NotificationService.shared.fetchNotifications { [weak self] result in
-            switch result {
-            case .success(let notifications):
-                DispatchQueue.main.async {
-                    self?.notifications = notifications
-                    self?.tableView.reloadData()
-                }
-            case .failure(let error):
-                print(error)
+        Task { [weak self] in
+            do {
+                let notifications = try await NetworkManager.shared.request(NotificationEndpoint.list, as: [AppNotification].self)
+                self?.notifications = notifications
+                self?.tableView.reloadData()
+            } catch {
+                self?.showError(error)
             }
         }
         
@@ -63,31 +61,22 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
         cell.selectionStyle = .none
         let notification = notifications[indexPath.row]
         if !notification.seen {
-            NotificationService.shared.markAsSeen(notificationId: notification.id) { result in
-                switch result {
-                case .success(let success):
-                    self.notifications[indexPath.row].seen = true
-                    print(success)
-                case .failure(let error):
-                    print(error)
-                }
-            }
+            markAsSeen(notificationId: notification.id)
         }
         cell.notification = notification
         cell.configure(with: notification)
-        cell.onGoProfileTapped = {
-            UserService.shared.getProfile(username: notification.sender.username, type: "public", model: UserDetail.self) { result in
-                switch result {
-                case .success(let detailedUser):
-                    DispatchQueue.main.async {
-                        let sb = UIStoryboard(name: "Profile", bundle: nil)
-                        let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
-                        vc.user = detailedUser
-                        vc.backBtn.isHidden = false
-                        self.navigationController?.pushViewController(vc, animated: true)
-                    }
-                case .failure(let error):
-                    print(error)
+        cell.onGoProfileTapped = { [weak self] in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
+                do {
+                    let detailedUser = try await NetworkManager.shared.request(UserEndpoint.profile(username: notification.sender.username), as: UserDetail.self)
+                    let sb = UIStoryboard(name: "Profile", bundle: nil)
+                    let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                    vc.user = detailedUser
+                    vc.backBtn.isHidden = false
+                    self?.navigationController?.pushViewController(vc, animated: true)
+                } catch {
+                    self?.showError(error)
                 }
             }
         }
@@ -112,6 +101,17 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
             if let userId = UserManager.shared.activeUser?.id {
                 goToNotificationsPost(userId: userId, notification: notification)
             }
+        }
+    }
+    
+    /// Sessiz işlem: başarısız olursa bildirim bir sonraki açılışta tekrar işaretlenir.
+    private func markAsSeen(notificationId: String) {
+        Task { [weak self] in
+            guard let response = try? await NetworkManager.shared.request(NotificationEndpoint.markSeen(id: notificationId), as: MarkSeenResponse.self),
+                  response.success,
+                  let self = self,
+                  let index = self.notifications.firstIndex(where: { $0.id == notificationId }) else { return }
+            self.notifications[index].seen = true
         }
     }
     

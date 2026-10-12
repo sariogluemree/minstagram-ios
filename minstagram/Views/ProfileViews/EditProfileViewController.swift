@@ -94,19 +94,16 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
         guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
 
         provider.loadObject(ofClass: UIImage.self) { image, error in
-            DispatchQueue.main.async {
-                if let selectedImage = image as? UIImage {
-                    UploadService.shared.uploadImageToBackend(image: selectedImage, folder: "profilePhotos") { imageUrl in
-                        DispatchQueue.main.async {
-                            guard let url = imageUrl else {
-                                print("Upload failed")
-                                return
-                            }
-                            self.profileImgView.image = selectedImage
-                            self.currentImgUrl = url
-                            NotificationCenter.default.post(name: .editProfileDidChange, object: nil)
-                        }
-                    }
+            guard let selectedImage = image as? UIImage else { return }
+            Task { @MainActor [weak self] in
+                do {
+                    let form = try MultipartFormData.image(selectedImage, type: UploadFolder.profilePhotos)
+                    let response = try await NetworkManager.shared.upload(UploadEndpoint.image, form: form, as: UploadResponse.self)
+                    self?.profileImgView.image = selectedImage
+                    self?.currentImgUrl = response.url
+                    NotificationCenter.default.post(name: .editProfileDidChange, object: nil)
+                } catch {
+                    self?.showError(error)
                 }
             }
         }
@@ -136,18 +133,14 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
         user.bio = bioRow.value
         user.profilePhoto = currentImgUrl ?? user.profilePhoto
         
-        UserService.shared.updateProfile(user: user) { [weak self] result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let updatedUser):
-                    self?.delegate?.didUpdateUserProfile(updatedUser)
-                    UserManager.shared.updateActiveUser(user: updatedUser)
-                    self?.navigationController?.popViewController(animated: true)
-                case .failure(let error):
-                    let alert = UIAlertController(title: "Error", message: error.localizedDescription, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self?.present(alert, animated: true)
-                }
+        Task { [weak self] in
+            do {
+                let updatedUser = try await NetworkManager.shared.request(UserEndpoint.update(UpdateProfileRequest(user: user)), as: UserDetail.self)
+                self?.delegate?.didUpdateUserProfile(updatedUser)
+                UserManager.shared.updateActiveUser(user: updatedUser)
+                self?.navigationController?.popViewController(animated: true)
+            } catch {
+                self?.showError(error, title: "Error")
             }
         }
     }

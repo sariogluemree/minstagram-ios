@@ -11,8 +11,6 @@ class EmailInputViewController: UIViewController {
     
     @IBOutlet weak var emailField: UITextField!
     
-    let emailService = EmailService()
-    
     override func viewDidLoad() {
     
         super.viewDidLoad()
@@ -20,7 +18,7 @@ class EmailInputViewController: UIViewController {
         }
     
     @IBAction func nextPressed(_ sender: UIButton) {
-        guard let email = emailField.text, emailService.isValidEmail(email) else {
+        guard let email = emailField.text, Validator.isValidEmail(email) else {
             showAlert(message: "Lütfen geçerli bir e-posta adresi giriniz.")
             return
         }
@@ -37,12 +35,6 @@ class EmailInputViewController: UIViewController {
     
     @IBAction func backToLogin(_ sender: UIButton) {
         self.navigationController?.popViewController(animated: true)
-    }
-    
-    private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Hata", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-        present(alert, animated: true)
     }
     
 }

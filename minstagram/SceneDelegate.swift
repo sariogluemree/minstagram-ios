@@ -21,31 +21,32 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         //UserManager.shared.logOut()
         
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSessionExpired), name: .sessionExpired, object: nil)
+        
         if UserManager.shared.isLoggedIn() {
-            print("user logged in")
-            UserManager.shared.getActiveUser { success in
-                DispatchQueue.main.async {
-                    if success {
-                        window.rootViewController = MainTabBarController()
-                    } else {
-                        // Hata olduysa login'e gönder
-                        let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
-                        let loginVC = authStoryboard.instantiateInitialViewController()!
-                        window.rootViewController = loginVC
-                    }
-                    self.window = window
-                    window.makeKeyAndVisible()
-                }
+            Task { @MainActor in
+                let success = await UserManager.shared.restoreSession()
+                // Hata olduysa login'e gönder
+                window.rootViewController = success ? MainTabBarController() : self.makeLoginViewController()
             }
         } else {
-            print("user not logged in")
-            let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
-            let loginVC = authStoryboard.instantiateInitialViewController()!
-            window.rootViewController = loginVC
+            window.rootViewController = makeLoginViewController()
         }
         
         self.window = window
         window.makeKeyAndVisible()
+    }
+    
+    private func makeLoginViewController() -> UIViewController {
+        let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
+        return authStoryboard.instantiateInitialViewController()!
+    }
+    
+    /// `NetworkManager` 401 aldığında tetiklenir.
+    @objc private func handleSessionExpired() {
+        UserManager.shared.logOut()
+        guard let window = window, window.rootViewController is MainTabBarController else { return }
+        window.rootViewController = makeLoginViewController()
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
