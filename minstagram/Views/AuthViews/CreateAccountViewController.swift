@@ -13,7 +13,6 @@ class CreateAccountViewController: UIViewController {
     @IBOutlet weak var passwordField: UITextField!
     
     var newUserEmail: String?
-    let authService = AuthService()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,26 +27,20 @@ class CreateAccountViewController: UIViewController {
             return
         }
         
-        authService.register(email: email, username: username, password: password) { [weak self] success, message in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                if success {
-                    self.navigationController?.popToRootViewController(animated: true)
-                } else {
-                    self.showAlert(message: message ?? "Kayıt başarısız.")
-                }
+        Task { [weak self] in
+            do {
+                let request = RegisterRequest(email: email, username: username, password: password)
+                let response = try await NetworkManager.shared.request(AuthEndpoint.register(request), as: RegisterResponse.self)
+                UserManager.shared.register(user: response.newUser)
+                self?.navigationController?.popToRootViewController(animated: true)
+            } catch {
+                self?.showError(error)
             }
         }
     }
     
     @IBAction func backPressed(_ sender: UIBarButtonItem) {
         self.navigationController?.popViewController(animated: true)
-    }
-    
-    private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Hata", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-        present(alert, animated: true)
     }
     
 }

@@ -12,7 +12,6 @@ class VerifyEmailViewController: UIViewController {
     @IBOutlet weak var codeField: UITextField!
     
     var userEmail: String?
-    let emailService = EmailService()
     
     override func viewDidLoad() {
     
@@ -23,40 +22,35 @@ class VerifyEmailViewController: UIViewController {
     }
     
     func sendCode(to email: String) {
-        emailService.sendVerificationCode(to: email) { [weak self] success, message in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                if success {
-                    self.showAlert(title: "Başarılı", message: message ?? "Email doğrulama kodu gönderildi!")
-                } else {
-                    self.showAlert(title: "Hata!", message: message ?? "Email gönderme işlemi başarısız.")
-                }
+        Task { [weak self] in
+            do {
+                let response = try await NetworkManager.shared.request(VerificationEndpoint.sendCode(email: email), as: MessageResponse.self)
+                self?.showAlert(title: "Başarılı", message: response.message)
+            } catch {
+                self?.showError(error, title: "Hata!")
             }
         }
     }
     
     @IBAction func nextPressed(_ sender: UIButton) {
-        guard let code = codeField.text, emailService.isValidCode(code) else {
+        guard let code = codeField.text, Validator.isValidCode(code) else {
             showAlert(title: "Hata!", message: "Geçerli bir kod giriniz")
             return
         }
-        if let email = userEmail {
-            emailService.verifyEmail(email: email, code: code) { [weak self] success, message in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    if success {
-                        let sb = UIStoryboard(name: "Auth", bundle: nil)
-                        if let vc = sb.instantiateViewController(withIdentifier: "CreateAccountViewController") as? CreateAccountViewController {
-                            vc.newUserEmail = email
-                            self.navigationController?.pushViewController(vc, animated: true)
-                        }
-                    } else {
-                        self.showAlert(title: "Hata", message: message ?? "Email doğrulanamadı.")
-                    }
+        guard let email = userEmail else { return }
+        
+        Task { [weak self] in
+            do {
+                try await NetworkManager.shared.request(VerificationEndpoint.verify(email: email, code: code))
+                let sb = UIStoryboard(name: "Auth", bundle: nil)
+                if let vc = sb.instantiateViewController(withIdentifier: "CreateAccountViewController") as? CreateAccountViewController {
+                    vc.newUserEmail = email
+                    self?.navigationController?.pushViewController(vc, animated: true)
                 }
+            } catch {
+                self?.showError(error)
             }
         }
-
     }
     
     @IBAction func resendCode(_ sender: UIButton) { //1dk boyunca tıklanamasın özelliği eklenecek.
@@ -67,12 +61,6 @@ class VerifyEmailViewController: UIViewController {
     
     @IBAction func backPressed(_ sender: UIBarButtonItem) {
         self.navigationController?.popViewController(animated: true)
-    }
-    
-    private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-        present(alert, animated: true)
     }
     
 }

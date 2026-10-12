@@ -58,21 +58,19 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
             self.setupCollectionView()
             self.fetchPosts(userId: userId)
         } else {
-            FollowService.shared.isFollowing(followingId: userId) { isFollowing, error in
-                if let error = error {
-                    print("Hata: \(error.localizedDescription)")
-                } else if let isFollowing = isFollowing {
-                    if isFollowing { //followed state
-                        DispatchQueue.main.async {
-                            self.updateActionView(FollowedProfileActionView())
-                            self.setupCollectionView()
-                            self.fetchPosts(userId: userId)
-                        }
+            Task { [weak self] in
+                do {
+                    let response = try await NetworkManager.shared.request(FollowEndpoint.isFollowing(userId: userId), as: IsFollowingResponse.self)
+                    guard let self = self else { return }
+                    if response.isFollowing { //followed state
+                        self.updateActionView(FollowedProfileActionView())
+                        self.setupCollectionView()
+                        self.fetchPosts(userId: userId)
                     } else { //unfollowed state
-                        DispatchQueue.main.async {
-                            self.updateActionView(UnfollowedProfileActionView())
-                        }
+                        self.updateActionView(UnfollowedProfileActionView())
                     }
+                } catch {
+                    self?.showError(error)
                 }
             }
         }
@@ -144,15 +142,13 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
     }
     
     func fetchPosts(userId: String) {
-        PostService.shared.fetchPosts(byUserId: userId) { result in
-            switch result {
-            case .success(let posts):
-                self.posts = posts
-                DispatchQueue.main.async {
-                    self.collectionView.reloadData()
-                }
-            case .failure(let error):
-                print("Error fetching posts: \(error)")
+        Task { [weak self] in
+            do {
+                let posts = try await NetworkManager.shared.request(PostEndpoint.forUser(userId: userId), as: [Post].self)
+                self?.posts = posts
+                self?.collectionView.reloadData()
+            } catch {
+                self?.showError(error)
             }
         }
     }
@@ -225,15 +221,14 @@ extension ProfileViewController: ProfileActionViewDelegate {
     
     func didTapUnfollow() {
         guard let user = user else {return}
-        FollowService.shared.unfollowUser(followingId: user.id) { [weak self] success, error in
-            if success {
-                DispatchQueue.main.async {
-                    self?.updateActionView(UnfollowedProfileActionView())
-                    self?.posts = []
-                    self?.collectionView.reloadData()
-                }
-            } else {
-                print("error: \(error ?? "Başarısız işlem")")
+        Task { [weak self] in
+            do {
+                try await NetworkManager.shared.request(FollowEndpoint.unfollow(userId: user.id))
+                self?.updateActionView(UnfollowedProfileActionView())
+                self?.posts = []
+                self?.collectionView.reloadData()
+            } catch {
+                self?.showError(error)
             }
         }
     }
@@ -244,15 +239,14 @@ extension ProfileViewController: ProfileActionViewDelegate {
     
     func didTapFollow() {
         guard let user = user else {return}
-        FollowService.shared.followUser(followingId: user.id) { [weak self] success, error in
-            if success {
-                DispatchQueue.main.async {
-                    self?.updateActionView(FollowedProfileActionView())
-                    self?.setupCollectionView()
-                    self?.fetchPosts(userId: user.id)
-                }
-            } else {
-                print("error: \(error ?? "Başarısız işlem")")
+        Task { [weak self] in
+            do {
+                try await NetworkManager.shared.request(FollowEndpoint.follow(userId: user.id))
+                self?.updateActionView(FollowedProfileActionView())
+                self?.setupCollectionView()
+                self?.fetchPosts(userId: user.id)
+            } catch {
+                self?.showError(error)
             }
         }
     }

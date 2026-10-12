@@ -12,8 +12,6 @@ class LoginViewController: UIViewController {
     @IBOutlet weak var userField: UITextField!
     @IBOutlet weak var passwordField: UITextField!
     
-    let authService = AuthService()
-    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         if UserManager.shared.isNewUser() {
@@ -32,14 +30,14 @@ class LoginViewController: UIViewController {
             return
         }
         
-        authService.login(user: emailOrUsername, password: password) { [weak self] success, errorMessage in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                if success {
-                    self.view.window?.rootViewController = MainTabBarController()
-                } else {
-                    self.showAlert(message: errorMessage ?? "Giriş başarısız.")
-                }
+        Task { [weak self] in
+            do {
+                let request = LoginRequest(emailOrUsername: emailOrUsername, password: password)
+                let response = try await NetworkManager.shared.request(AuthEndpoint.login(request), as: LoginResponse.self)
+                UserManager.shared.login(token: response.token, user: response.user)
+                self?.view.window?.rootViewController = MainTabBarController()
+            } catch {
+                self?.showError(error)
             }
         }
     }
@@ -49,12 +47,6 @@ class LoginViewController: UIViewController {
         if let vc = sb.instantiateViewController(withIdentifier: "EmailInputViewController") as? EmailInputViewController {
             self.navigationController?.pushViewController(vc, animated: true)
         }
-    }
-    
-    private func showAlert(message: String) {
-        let alert = UIAlertController(title: "Hata", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Tamam", style: .default))
-        present(alert, animated: true)
     }
     
 }
