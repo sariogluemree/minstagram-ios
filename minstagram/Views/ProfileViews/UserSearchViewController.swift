@@ -28,13 +28,13 @@ class UserSearchViewController: UIViewController {
     
     private func setupNavigationBar() {
         let backBtn = UIBarButtonItem(image: UIImage(systemName: "arrow.backward"), style: .plain, target: self, action: #selector(back))
-        backBtn.tintColor = .black
+        backBtn.tintColor = .label
         navigationItem.leftBarButtonItem = backBtn
     }
     
     private func setupSearchBar() {
         searchBar.delegate = self
-        searchBar.placeholder = "Kullanıcı ara"
+        searchBar.placeholder = "Search users"
         navigationItem.titleView = searchBar
     }
     
@@ -89,13 +89,15 @@ extension UserSearchViewController: UITableViewDelegate, UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: false)
+        guard filteredUsers.indices.contains(indexPath.row) else { return }
         let user = filteredUsers[indexPath.row]
         Task { [weak self] in
             do {
                 let userDetail = try await NetworkManager.shared.request(UserEndpoint.profile(username: user.username), as: UserDetail.self)
                 let sb = UIStoryboard(name: "Profile", bundle: nil)
-                let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                guard let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as? ProfileViewController else { return }
                 vc.user = userDetail
+                vc.loadViewIfNeeded()
                 vc.backBtn.isHidden = false
                 self?.navigationController?.pushViewController(vc, animated: true)
             } catch {

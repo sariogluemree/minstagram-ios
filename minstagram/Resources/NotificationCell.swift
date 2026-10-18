@@ -26,8 +26,9 @@ class NotificationCell: UITableViewCell {
     }
     
     override func prepareForReuse() {
+        super.prepareForReuse()
         ppImgView.sd_cancelCurrentImageLoad()
-        ppImgView.image = UIImage(named: "placeholder")
+        ppImgView.image = UIImage(systemName: "person.crop.circle.fill")
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {
@@ -39,6 +40,7 @@ class NotificationCell: UITableViewCell {
     private func setupUI() {
         ppImgView.layer.cornerRadius = ppImgView.frame.height / 2
         ppImgView.backgroundColor = .lightGray
+        ppImgView.tintColor = .systemGray
         ppImgView.contentMode = .scaleAspectFill
         ppImgView.clipsToBounds = true
     }
@@ -92,6 +94,8 @@ class NotificationCell: UITableViewCell {
     func configure(with notification: AppNotification) {
         if let profileUrl = URL(string: notification.sender.profilePhoto), !notification.sender.profilePhoto.isEmpty {
             loadImage(from: profileUrl, into: ppImgView)
+        } else {
+            ppImgView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         
         switch notification.type {
@@ -102,6 +106,8 @@ class NotificationCell: UITableViewCell {
         case .comment:
             if let comment = notification.comment {
                 notificationMessage.text = "\(notification.sender.username) commented on your post: \(comment.text)"
+            } else {
+                notificationMessage.text = "\(notification.sender.username) commented on your post."
             }
         case .tag:
             notificationMessage.text = "\(notification.sender.username) tagged you in a post."
@@ -120,7 +126,7 @@ class NotificationCell: UITableViewCell {
     private func loadImage(from url: URL, into imageView: UIImageView) {
         imageView.sd_setImage(
             with: url,
-            placeholderImage: UIImage(named: "placeholder")
+            placeholderImage: UIImage(systemName: "person.crop.circle.fill")
         )
     }
 

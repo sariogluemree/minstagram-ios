@@ -34,12 +34,13 @@ class PostCollectionCell: UICollectionViewCell {
     }
     override func prepareForReuse() {
         super.prepareForReuse()
+        postImageView.sd_cancelCurrentImageLoad()
         postImageView.image = nil
     }
     
     func configure(with urlString: String) {
         if let url = URL(string: urlString) {
-            postImageView.sd_setImage(with: url, placeholderImage: UIImage(named: "placeholder"))
+            postImageView.sd_setImage(with: url, placeholderImage: nil)
         }
     }
     

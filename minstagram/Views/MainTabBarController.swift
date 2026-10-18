@@ -36,10 +36,11 @@ class MainTabBarController: UITabBarController, UITabBarControllerDelegate, PHPi
         }
         let profileSB = UIStoryboard(name: "Profile", bundle: nil)
         if let profileNav = profileSB.instantiateViewController(withIdentifier: "ProfileNavigationController") as? UINavigationController {
-           profileNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "person.crop.circle"), tag: 2)
-            let profileVC = profileNav.viewControllers.first as! ProfileViewController
-            let activeUser = UserManager.shared.activeUser!
-            profileVC.user = activeUser
+            profileNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "person.crop.circle"), tag: 2)
+            if let profileVC = profileNav.viewControllers.first as? ProfileViewController,
+               let activeUser = UserManager.shared.activeUser ?? UserManager.shared.loadCachedUser() {
+                profileVC.user = activeUser
+            }
             controllers.append(profileNav)
         }
         
@@ -75,21 +76,21 @@ class MainTabBarController: UITabBarController, UITabBarControllerDelegate, PHPi
 
         guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
 
-        provider.loadObject(ofClass: UIImage.self) { image, error in
+        provider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
             DispatchQueue.main.async {
-                if let selectedImage = image as? UIImage {
-                    let newPostSB = UIStoryboard(name: "NewPost", bundle: nil)
-                    if let newPostNav = newPostSB.instantiateViewController(withIdentifier: "NewPostNavigationController") as? UINavigationController {
-                        newPostNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "plus.app"), tag: 1)
-                        let newPostVC = newPostNav.viewControllers.first as! PostOptionsViewController
-                        newPostVC.selectedImage = selectedImage
-                        self.viewControllers?[1] = newPostNav
-                        self.selectedIndex = 1
-                    }
+                guard let self = self, let selectedImage = image as? UIImage else { return }
+                let newPostSB = UIStoryboard(name: "NewPost", bundle: nil)
+                if let newPostNav = newPostSB.instantiateViewController(withIdentifier: "NewPostNavigationController") as? UINavigationController,
+                   let newPostVC = newPostNav.viewControllers.first as? PostOptionsViewController {
+                    newPostNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "plus.app"), tag: 1)
+                    newPostVC.selectedImage = selectedImage
+                    self.viewControllers?[1] = newPostNav
+                    self.selectedIndex = 1
                 }
             }
         }
     }
+
 
     /*
     // MARK: - Navigation

@@ -8,7 +8,7 @@
 import UIKit
 import SDWebImage
 
-class PostCell: UITableViewCell, UIActionSheetDelegate {
+class PostCell: UITableViewCell {
     
     var post: Post?
     
@@ -48,13 +48,13 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         }
         optionsButton.isHidden = false
         profileImageView.sd_cancelCurrentImageLoad()
-        profileImageView.image = UIImage(named: "placeholder")
+        profileImageView.image = UIImage(systemName: "person.crop.circle.fill")
         postImageView.sd_cancelCurrentImageLoad()
-        postImageView.image = UIImage(named: "placeholder")
+        postImageView.image = nil
         likeButton.setImage(UIImage(systemName: "heart"), for: .normal)
-        likeButton.tintColor = .black
+        likeButton.tintColor = .label
         bookmarkButton.setImage(UIImage(systemName: "bookmark"), for: .normal)
-        bookmarkButton.tintColor = .black
+        bookmarkButton.tintColor = .label
         commentsLabel.attributedText = nil
         commentsLabel.font = .systemFont(ofSize: 14)
     }
@@ -79,7 +79,9 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
 
     private func setupUI() {
         profileImageView.layer.cornerRadius = profileImageView.frame.height / 2
+        profileImageView.clipsToBounds = true
         profileImageView.backgroundColor = .lightGray
+        profileImageView.tintColor = .systemGray
         postImageView.contentMode = .scaleAspectFill
         postImageView.clipsToBounds = true
     }
@@ -147,16 +149,22 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
     }
     
     func configure(with post: Post, isTruncated: Bool) {
+        optionsButton.isHidden = (UserManager.shared.activeUser?.username != post.user.username)
         
-        if let activeUser = UserManager.shared.activeUser, activeUser.username != post.user.username {
-            optionsButton.isHidden = true
-        }
         if let profileUrl = URL(string: post.user.profilePhoto), !post.user.profilePhoto.isEmpty {
-            loadImage(from: profileUrl, into: profileImageView)
+            profileImageView.sd_setImage(
+                with: profileUrl,
+                placeholderImage: UIImage(systemName: "person.crop.circle.fill")
+            )
+        } else {
+            profileImageView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         usernameLabel.text = post.user.username
         if let imageUrl = URL(string: post.imageUrl) {
-            loadImage(from: imageUrl, into: postImageView)
+            postImageView.sd_setImage(with: imageUrl, placeholderImage: nil)
+        }
+        for subview in postImageView.subviews {
+            subview.removeFromSuperview()
         }
         taggedPeopleIcon.isHidden = true
         if !post.tags.isEmpty {
@@ -174,23 +182,22 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         var attributedCaption = NSMutableAttributedString()
         var postFixRange = NSRange()
         if fullText.count > 70 {
-            if !isTruncated {
-                let truncatedText = fullText.prefix(70) + "... more"
-                postFixRange = (truncatedText as NSString).range(of: "more")
-                let truncatedCaption = String(truncatedText)
+            if isTruncated {
+                let truncatedCaption = String(fullText.prefix(70)) + "... more"
+                postFixRange = (truncatedCaption as NSString).range(of: "more", options: .backwards)
                 attributedCaption = NSMutableAttributedString(string: truncatedCaption)
                 isExpandedCaption = false
             } else {
                 let expandedText = fullText + " less"
-                postFixRange = (expandedText as NSString).range(of: "less")
+                postFixRange = (expandedText as NSString).range(of: "less", options: .backwards)
                 attributedCaption = NSMutableAttributedString(string: expandedText)
                 isExpandedCaption = true
             }
             let postFixFont = UIFont.systemFont(ofSize: captionLabel.font.pointSize)
             attributedCaption.addAttributes([.font: postFixFont, .foregroundColor: UIColor.gray], range: postFixRange)
         } else {
-            let originalCaption = fullText
-            attributedCaption = NSMutableAttributedString(string: originalCaption)
+            attributedCaption = NSMutableAttributedString(string: fullText)
+            isExpandedCaption = false
         }
         let usernameRange = (fullText as NSString).range(of: username)
         let boldFont = UIFont.boldSystemFont(ofSize: captionLabel.font.pointSize)
@@ -221,11 +228,17 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         timeLabel.text = DateHelper.timeAgo(from: post.createdAt)
         if post.isLiked {
             likeButton.setImage(UIImage(systemName: "heart.fill"), for: .normal)
-            likeButton.tintColor = .red
+            likeButton.tintColor = .systemRed
+        } else {
+            likeButton.setImage(UIImage(systemName: "heart"), for: .normal)
+            likeButton.tintColor = .label
         }
         if post.isSaved {
             bookmarkButton.setImage(UIImage(systemName: "bookmark.fill"), for: .normal)
-            bookmarkButton.tintColor = .black
+            bookmarkButton.tintColor = .label
+        } else {
+            bookmarkButton.setImage(UIImage(systemName: "bookmark"), for: .normal)
+            bookmarkButton.tintColor = .label
         }
     }
     
@@ -233,13 +246,6 @@ class PostCell: UITableViewCell, UIActionSheetDelegate {
         let tagBalloon = TagBalloon(username: username, position: point, in: postImgView)
         tagBalloon.isHidden = true
         postImgView.addSubview(tagBalloon)
-    }
-
-    private func loadImage(from url: URL, into imageView: UIImageView) {
-        imageView.sd_setImage(
-            with: url,
-            placeholderImage: UIImage(named: "placeholder")
-        )
     }
 }
 

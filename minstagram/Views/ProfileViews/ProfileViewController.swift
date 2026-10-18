@@ -19,11 +19,13 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
         navigationItem.leftBarButtonItems?.removeLast(1)
         setupNavigationTitle(username: user.username)
         nameLbl.text = user.name
-        if !user.profilePhoto.isEmpty {
-            let ppUrl = user.profilePhoto
-            let url = URL(string: ppUrl)
-            profileImgView.sd_setImage(with: url, placeholderImage: UIImage(named: "placeholder"))
-            profileImgView.layer.cornerRadius = 50
+        profileImgView.layer.cornerRadius = 50
+        profileImgView.clipsToBounds = true
+        profileImgView.tintColor = .systemGray
+        if !user.profilePhoto.isEmpty, let url = URL(string: user.profilePhoto) {
+            profileImgView.sd_setImage(with: url, placeholderImage: UIImage(systemName: "person.crop.circle.fill"))
+        } else {
+            profileImgView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         bioLabel.text = user.bio
     }
@@ -38,7 +40,7 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
     @IBOutlet weak var backBtn: UIBarButtonItem!
     
     private var currentActionView: ProfileActionView?
-    var collectionView: UICollectionView!
+    var collectionView: UICollectionView?
     var user: UserDetail?
     var posts: [Post] = []
     
@@ -87,11 +89,13 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
     
     func setupUserProfile(user: UserDetail) {
         nameLbl.text = user.name
-        if !user.profilePhoto.isEmpty {
-            let ppUrl = user.profilePhoto
-            let url = URL(string: ppUrl)
-            profileImgView.sd_setImage(with: url, placeholderImage: UIImage(named: "placeholder"))
-            profileImgView.layer.cornerRadius = 50
+        profileImgView.layer.cornerRadius = 50
+        profileImgView.clipsToBounds = true
+        profileImgView.tintColor = .systemGray
+        if !user.profilePhoto.isEmpty, let url = URL(string: user.profilePhoto) {
+            profileImgView.sd_setImage(with: url, placeholderImage: UIImage(systemName: "person.crop.circle.fill"))
+        } else {
+            profileImgView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         postCountLbl.text = user.postsCount.description
         followersCountLbl.text = user.followersCount.description
@@ -118,27 +122,29 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
     }
     
     func setupCollectionView() {
+        guard collectionView == nil else { return }
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
         layout.minimumInteritemSpacing = 4
         layout.minimumLineSpacing = 4
         layout.sectionInset = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
         
-        collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .systemBackground
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        collectionView.dataSource = self
-        collectionView.delegate = self
-        collectionView.register(PostCollectionCell.self, forCellWithReuseIdentifier: "PostCollectionCell")
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.backgroundColor = .systemBackground
+        cv.translatesAutoresizingMaskIntoConstraints = false
+        cv.dataSource = self
+        cv.delegate = self
+        cv.register(PostCollectionCell.self, forCellWithReuseIdentifier: "PostCollectionCell")
         
-        view.addSubview(collectionView)
+        view.addSubview(cv)
         
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: actionContainerView.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+            cv.topAnchor.constraint(equalTo: actionContainerView.bottomAnchor),
+            cv.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            cv.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            cv.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
+        collectionView = cv
     }
     
     func fetchPosts(userId: String) {
@@ -146,7 +152,7 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
             do {
                 let posts = try await NetworkManager.shared.request(PostEndpoint.forUser(userId: userId), as: [Post].self)
                 self?.posts = posts
-                self?.collectionView.reloadData()
+                self?.collectionView?.reloadData()
             } catch {
                 self?.showError(error)
             }
@@ -190,7 +196,7 @@ extension ProfileViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let postIndex = indexPath.row
-        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "FeedViewController") as! FeedViewController
+        guard let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "FeedViewController") as? FeedViewController else { return }
         vc.mode = .userPosts
         vc.postIndex = postIndex
         vc.posts = posts
@@ -202,7 +208,7 @@ extension ProfileViewController: ProfileActionViewDelegate {
     
     func didTapEditProfile() {
         let sb = UIStoryboard(name: "Profile", bundle: nil)
-        let editVC = sb.instantiateViewController(withIdentifier: "EditProfileViewController") as! EditProfileViewController
+        guard let editVC = sb.instantiateViewController(withIdentifier: "EditProfileViewController") as? EditProfileViewController else { return }
         editVC.user = user
         editVC.delegate = self
         navigationController?.pushViewController(editVC, animated: true)
@@ -210,7 +216,7 @@ extension ProfileViewController: ProfileActionViewDelegate {
     
     func didTapShareProfile() {
         let sb = UIStoryboard(name: "Profile", bundle: nil)
-        let shareVC = sb.instantiateViewController(withIdentifier: "ShareProfileViewController") as! ShareProfileViewController
+        guard let shareVC = sb.instantiateViewController(withIdentifier: "ShareProfileViewController") as? ShareProfileViewController else { return }
         navigationController?.pushViewController(shareVC, animated: true)
     }
     
@@ -224,9 +230,15 @@ extension ProfileViewController: ProfileActionViewDelegate {
         Task { [weak self] in
             do {
                 try await NetworkManager.shared.request(FollowEndpoint.unfollow(userId: user.id))
-                self?.updateActionView(UnfollowedProfileActionView())
-                self?.posts = []
-                self?.collectionView.reloadData()
+                guard let self = self else { return }
+                self.updateActionView(UnfollowedProfileActionView())
+                self.posts = []
+                self.collectionView?.reloadData()
+                if let currentCount = self.user?.followersCount {
+                    let updatedCount = max(0, currentCount - 1)
+                    self.user?.followersCount = updatedCount
+                    self.followersCountLbl.text = updatedCount.description
+                }
             } catch {
                 self?.showError(error)
             }
@@ -242,9 +254,15 @@ extension ProfileViewController: ProfileActionViewDelegate {
         Task { [weak self] in
             do {
                 try await NetworkManager.shared.request(FollowEndpoint.follow(userId: user.id))
-                self?.updateActionView(FollowedProfileActionView())
-                self?.setupCollectionView()
-                self?.fetchPosts(userId: user.id)
+                guard let self = self else { return }
+                self.updateActionView(FollowedProfileActionView())
+                self.setupCollectionView()
+                self.fetchPosts(userId: user.id)
+                if let currentCount = self.user?.followersCount {
+                    let updatedCount = currentCount + 1
+                    self.user?.followersCount = updatedCount
+                    self.followersCountLbl.text = updatedCount.description
+                }
             } catch {
                 self?.showError(error)
             }

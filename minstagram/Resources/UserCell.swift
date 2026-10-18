@@ -27,12 +27,14 @@ class UserCell: UITableViewCell {
     }()
     
     override func prepareForReuse() {
+        super.prepareForReuse()
         profileImageView.sd_cancelCurrentImageLoad()
-        profileImageView.image = UIImage(named: "placeholder")
+        profileImageView.image = UIImage(systemName: "person.crop.circle.fill")
     }
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        profileImageView.tintColor = .systemGray
         contentView.addSubview(profileImageView)
         contentView.addSubview(usernameLabel)
         
@@ -54,8 +56,10 @@ class UserCell: UITableViewCell {
 
     func configure(with user: PostUser) {
         usernameLabel.text = user.username
-        if let url = URL(string: user.profilePhoto) {
-            profileImageView.sd_setImage(with: url, placeholderImage: UIImage(named: "placeholder"))
+        if !user.profilePhoto.isEmpty, let url = URL(string: user.profilePhoto) {
+            profileImageView.sd_setImage(with: url, placeholderImage: UIImage(systemName: "person.crop.circle.fill"))
+        } else {
+            profileImageView.image = UIImage(systemName: "person.crop.circle.fill")
         }
     }
 }

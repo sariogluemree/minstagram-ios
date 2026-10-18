@@ -33,6 +33,8 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
         setupNavigationTitle()
         setupProfilePhoto(with: user.profilePhoto)
         setupRows(user: user)
+        navigationItem.rightBarButtonItem?.isEnabled = false
+        navigationItem.rightBarButtonItem?.tintColor = .systemGray
         NotificationCenter.default.addObserver(self, selector: #selector(checkIfValuesChanged(_:)), name: .editProfileDidChange, object: nil)
     }
     
@@ -46,12 +48,26 @@ class EditProfileViewController: UIViewController, PHPickerViewControllerDelegat
     }
     
     private func setupProfilePhoto(with ppUrl: String) {
+        profileImgView.translatesAutoresizingMaskIntoConstraints = false
+        changePPBtn.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            profileImgView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            profileImgView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            profileImgView.widthAnchor.constraint(equalToConstant: 100),
+            profileImgView.heightAnchor.constraint(equalToConstant: 100),
+            changePPBtn.topAnchor.constraint(equalTo: profileImgView.bottomAnchor, constant: 12),
+            changePPBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
         profileImgView.layer.cornerRadius = 50
-        if let url = URL(string: ppUrl) {
+        profileImgView.clipsToBounds = true
+        profileImgView.tintColor = .systemGray
+        if !ppUrl.isEmpty, let url = URL(string: ppUrl) {
             profileImgView.sd_setImage(
                 with: url,
-                placeholderImage: UIImage(named: "placeholder")
+                placeholderImage: UIImage(systemName: "person.crop.circle.fill")
             )
+        } else {
+            profileImgView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         currentImgUrl = ppUrl
     }

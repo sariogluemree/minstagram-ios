@@ -32,10 +32,9 @@
                     </view>
                     <navigationItem key="navigationItem" id="H8V-v1-ofl">
                         <barButtonItem key="rightBarButtonItem" title="Item" image="suit.heart" catalog="system" id="4db-xb-icR">
-                            <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <color key="tintColor" systemColor="labelColor"/>
                             <connections>
                                 <action selector="showNotifications:" destination="BYZ-38-t0r" id="8Ae-K7-lxg"/>
-                                <segue destination="Hz4-td-z2f" kind="push" id="b4G-29-SPV"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
@@ -109,7 +108,7 @@
                     </view>
                     <navigationItem key="navigationItem" id="MCB-Sa-r08">
                         <barButtonItem key="leftBarButtonItem" title="Item" image="arrow.backward" catalog="system" id="wLa-hu-QWu">
-                            <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <color key="tintColor" systemColor="labelColor"/>
                             <connections>
                                 <action selector="backToFeed:" destination="Hz4-td-z2f" id="Q70-g4-dX5"/>
                             </connections>
@@ -294,6 +293,9 @@
         <image name="arrow.backward" catalog="system" width="128" height="95"/>
         <image name="arrow.up" catalog="system" width="118" height="128"/>
         <image name="suit.heart" catalog="system" width="128" height="107"/>
+        <systemColor name="labelColor">
+            <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

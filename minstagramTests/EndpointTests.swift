@@ -57,7 +57,7 @@ struct EndpointTests {
         .init(endpoint: NotificationEndpoint.markSeen(id: "n1"), path: "notifications/seen/n1", method: .post, requiresAuth: true, hasBody: false),
         .init(endpoint: NotificationEndpoint.hasUnseen, path: "notifications/has-unseen", method: .get, requiresAuth: true, hasBody: false),
         // Upload
-        .init(endpoint: UploadEndpoint.image, path: "upload", method: .post, requiresAuth: false, hasBody: false),
+        .init(endpoint: UploadEndpoint.image, path: "upload", method: .post, requiresAuth: true, hasBody: false),
     ]
 
     @Test func endpointsMatchBackendRoutes() {

@@ -23,13 +23,17 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         NotificationCenter.default.addObserver(self, selector: #selector(handleSessionExpired), name: .sessionExpired, object: nil)
         
-        if UserManager.shared.isLoggedIn() {
+        if UserManager.shared.isLoggedIn(), UserManager.shared.loadCachedUser() != nil {
+            window.rootViewController = MainTabBarController()
             Task { @MainActor in
                 let success = await UserManager.shared.restoreSession()
-                // Hata olduysa login'e gönder
-                window.rootViewController = success ? MainTabBarController() : self.makeLoginViewController()
+                if !success {
+                    UserManager.shared.logOut()
+                    window.rootViewController = self.makeLoginViewController()
+                }
             }
         } else {
+            UserManager.shared.logOut()
             window.rootViewController = makeLoginViewController()
         }
         
@@ -39,7 +43,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     
     private func makeLoginViewController() -> UIViewController {
         let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
-        return authStoryboard.instantiateInitialViewController()!
+        return authStoryboard.instantiateInitialViewController() ?? UIViewController()
     }
     
     /// `NetworkManager` 401 aldığında tetiklenir.
@@ -48,6 +52,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let window = window, window.rootViewController is MainTabBarController else { return }
         window.rootViewController = makeLoginViewController()
     }
+
 
     func sceneDidDisconnect(_ scene: UIScene) {
         // Called as the scene is being released by the system.

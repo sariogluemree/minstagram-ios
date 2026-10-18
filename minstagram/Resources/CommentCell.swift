@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SDWebImage
 
 class CommentCell: UITableViewCell {
     
@@ -19,6 +20,12 @@ class CommentCell: UITableViewCell {
         // Initialization code
     }
 
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        profileImgView.sd_cancelCurrentImageLoad()
+        profileImgView.image = UIImage(systemName: "person.crop.circle.fill")
+    }
+
     override func setSelected(_ selected: Bool, animated: Bool) {
         super.setSelected(selected, animated: animated)
 
@@ -29,8 +36,11 @@ class CommentCell: UITableViewCell {
         profileImgView.layer.cornerRadius = profileImgView.frame.height / 2
         profileImgView.clipsToBounds = true
         profileImgView.backgroundColor = .lightGray
+        profileImgView.tintColor = .systemGray
         if let profileUrl = URL(string: comment.user.profilePhoto), !comment.user.profilePhoto.isEmpty {
             loadImage(from: profileUrl, into: profileImgView)
+        } else {
+            profileImgView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         usernameLabel.text = comment.user.username
         commentLabel.text = comment.text
@@ -39,7 +49,7 @@ class CommentCell: UITableViewCell {
     private func loadImage(from url: URL, into imageView: UIImageView) {
         imageView.sd_setImage(
             with: url,
-            placeholderImage: UIImage(named: "placeholder")
+            placeholderImage: UIImage(systemName: "person.crop.circle.fill")
         )
     }
 

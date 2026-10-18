@@ -37,7 +37,7 @@ class OwnProfileActionView: UIView, ProfileActionView {
         let button = UIButton(type: .system)
         button.setTitle("Edit Profile", for: .normal)
         button.backgroundColor = .systemGray5
-        button.tintColor = .black
+        button.tintColor = .label
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(editProfileTapped), for: .touchUpInside)
         return button
@@ -47,7 +47,7 @@ class OwnProfileActionView: UIView, ProfileActionView {
         let button = UIButton(type: .system)
         button.setTitle("Share Profile", for: .normal)
         button.backgroundColor = .systemGray5
-        button.tintColor = .black
+        button.tintColor = .label
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(shareProfileTapped), for: .touchUpInside)
         return button
@@ -57,7 +57,7 @@ class OwnProfileActionView: UIView, ProfileActionView {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "person.badge.plus"), for: .normal)
         button.backgroundColor = .systemGray5
-        button.tintColor = .black
+        button.tintColor = .label
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(recommendationsTapped), for: .touchUpInside)
         return button
@@ -181,7 +181,7 @@ class FollowedProfileActionView: UIView, ProfileActionView {
         let button = UIButton(type: .system)
         button.setTitle("Unfollow", for: .normal)
         button.backgroundColor = .systemGray5
-        button.tintColor = .black
+        button.tintColor = .label
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(unfollowTapped), for: .touchUpInside)
         return button
@@ -191,7 +191,7 @@ class FollowedProfileActionView: UIView, ProfileActionView {
         let button = UIButton(type: .system)
         button.setTitle("Message", for: .normal)
         button.backgroundColor = .systemGray5
-        button.tintColor = .black
+        button.tintColor = .label
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(goToDirectMessages), for: .touchUpInside)
         return button
@@ -201,7 +201,7 @@ class FollowedProfileActionView: UIView, ProfileActionView {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "person.badge.plus"), for: .normal)
         button.backgroundColor = .systemGray5
-        button.tintColor = .black
+        button.tintColor = .label
         button.layer.cornerRadius = 8
         button.addTarget(self, action: #selector(recommendationsTapped), for: .touchUpInside)
         return button

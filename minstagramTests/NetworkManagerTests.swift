@@ -213,7 +213,7 @@ struct NetworkManagerTests {
     }
 
     @Test func uploadSendsMultipartBody() async throws {
-        let manager = TestNetwork.makeManager(token: nil)
+        let manager = TestNetwork.makeManager(token: "upload-token")
         TestNetwork.respond(status: 200, json: #"{"url": "https://cdn.test/image.jpg"}"#)
 
         var form = MultipartFormData(boundary: "TEST-BOUNDARY")
@@ -224,7 +224,7 @@ struct NetworkManagerTests {
         let sent = try #require(MockURLProtocol.receivedRequests.first)
         #expect(sent.httpMethod == "POST")
         #expect(sent.value(forHTTPHeaderField: "Content-Type") == "multipart/form-data; boundary=TEST-BOUNDARY")
-        #expect(sent.value(forHTTPHeaderField: "Authorization") == nil)
+        #expect(sent.value(forHTTPHeaderField: "Authorization") == "Bearer upload-token")
     }
 }
 

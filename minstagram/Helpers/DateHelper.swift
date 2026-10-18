@@ -9,9 +9,15 @@ import Foundation
 
 final class DateHelper {
 
-    private static let isoFormatter: ISO8601DateFormatter = {
+    private static let isoFormatterWithFractional: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let isoFormatterWithoutFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
         return formatter
     }()
 
@@ -23,7 +29,8 @@ final class DateHelper {
 
     /// Converts ISO 8601 string (e.g. "2025-05-12T10:12:00Z") to Date
     static func date(from isoString: String) -> Date? {
-        return isoFormatter.date(from: isoString)
+        return isoFormatterWithFractional.date(from: isoString)
+            ?? isoFormatterWithoutFractional.date(from: isoString)
     }
 
     /// Converts Date to "time ago" string (e.g. "2 hours ago")
@@ -40,3 +47,4 @@ final class DateHelper {
     }
     
 }
+
