@@ -43,6 +43,10 @@ struct FollowRequest: Encodable {
     let followingId: String
 }
 
+struct RemoveFollowerRequest: Encodable {
+    let followerId: String
+}
+
 /// like / unlike / save / unsave gövdesi.
 struct PostIdRequest: Encodable {
     let postId: String

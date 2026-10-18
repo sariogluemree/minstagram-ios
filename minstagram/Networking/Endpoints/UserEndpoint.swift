@@ -14,6 +14,8 @@ enum UserEndpoint: Endpoint {
     case all
     /// → `UserDetail`
     case update(UpdateProfileRequest)
+    /// → `MessageResponse`
+    case delete
 
     var path: String {
         switch self {
@@ -21,12 +23,14 @@ enum UserEndpoint: Endpoint {
              .postProfile(let username): return "users/profile/\(username)"
         case .all:                       return "users/all"
         case .update:                    return "users/update"
+        case .delete:                    return "users/delete"
         }
     }
 
     var method: HTTPMethod {
         switch self {
         case .update: return .put
+        case .delete: return .delete
         default:      return .get
         }
     }
@@ -48,8 +52,8 @@ enum UserEndpoint: Endpoint {
 
     var requiresAuth: Bool {
         switch self {
-        case .update: return true
-        default:      return false
+        case .update, .delete: return true
+        default:               return false
         }
     }
 }

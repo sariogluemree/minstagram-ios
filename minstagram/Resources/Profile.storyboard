@@ -109,8 +109,10 @@
                             <constraint firstItem="feC-Ym-Ofn" firstAttribute="top" secondItem="vDu-zF-Fre" secondAttribute="top" constant="16" id="GIX-5e-7qH"/>
                             <constraint firstItem="UN7-ta-Okn" firstAttribute="top" secondItem="feC-Ym-Ofn" secondAttribute="bottom" constant="8" id="IAv-xq-stj"/>
                             <constraint firstItem="UN7-ta-Okn" firstAttribute="leading" secondItem="vDu-zF-Fre" secondAttribute="leading" constant="16" id="KUD-6o-R8f"/>
+                            <constraint firstItem="vDu-zF-Fre" firstAttribute="trailing" secondItem="UN7-ta-Okn" secondAttribute="trailing" constant="16" id="bio-tr-16x"/>
                             <constraint firstItem="vDu-zF-Fre" firstAttribute="trailing" secondItem="A5A-FF-Cwa" secondAttribute="trailing" constant="16" id="XLk-mu-ale"/>
                             <constraint firstItem="d9l-NW-fbZ" firstAttribute="leading" secondItem="feC-Ym-Ofn" secondAttribute="trailing" constant="8" id="aTi-9b-vuF"/>
+                            <constraint firstItem="vDu-zF-Fre" firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="d9l-NW-fbZ" secondAttribute="trailing" constant="16" id="nam-tr-16x"/>
                             <constraint firstItem="wNm-dN-iyk" firstAttribute="top" secondItem="d9l-NW-fbZ" secondAttribute="bottom" constant="10" id="bGm-O3-tqX"/>
                             <constraint firstItem="A5A-FF-Cwa" firstAttribute="leading" secondItem="vDu-zF-Fre" secondAttribute="leading" constant="16" id="egI-jU-0C2"/>
                         </constraints>
