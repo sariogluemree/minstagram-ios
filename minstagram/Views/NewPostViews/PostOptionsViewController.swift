@@ -16,7 +16,6 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     var tagPeopleRow: RowView?
     var selectedImage: UIImage?
     var caption: String?
-    var debounceTimer: Timer?
     
     var tagList : [Tag] = []
     
@@ -78,7 +77,8 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
         if let newPostImg = selectedImage {
             newPostImgView.image = newPostImg
             
-            let tagPeopleRow = RowView(icon: UIImage(systemName: "person.circle.fill"), title: "Tag People", rowType: RowType.settings) {
+            let tagPeopleRow = RowView(icon: UIImage(systemName: "person.circle.fill"), title: "Tag People", rowType: RowType.settings) { [weak self] in
+                guard let self = self else { return }
                 let sb = UIStoryboard(name: "NewPost", bundle: nil)
                 if let vc = sb.instantiateViewController(withIdentifier: "TagPeopleViewController") as? TagPeopleViewController {
                     vc.postImg = newPostImg
@@ -111,26 +111,35 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
     }
     
     @IBAction func shareBtnPressed(_ sender: UIButton) {
-        
-        if let tabBarController = self.tabBarController as? MainTabBarController {
-            tabBarController.tabBar.isHidden = false
-        }
+        view.endEditing(true)
         
         guard let image = newPostImgView.image else {
             return
         }
         
-        let caption = self.caption ?? ""
+        let currentText = (captionTextView.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedCaption: String
+        if !currentText.isEmpty && currentText != "Add a caption..." {
+            resolvedCaption = currentText
+            self.caption = currentText
+        } else {
+            resolvedCaption = self.caption ?? ""
+        }
         let tags = self.tagList
+        sender.isEnabled = false
         
-        Task { [weak self] in
+        Task { [weak self, weak sender] in
+            defer { sender?.isEnabled = true }
             do {
                 let form = try MultipartFormData.image(image, type: UploadFolder.posts)
                 let upload = try await NetworkManager.shared.upload(UploadEndpoint.image, form: form, as: UploadResponse.self)
-                let request = CreatePostRequest(imageUrl: upload.url, caption: caption, tags: tags)
+                let request = CreatePostRequest(imageUrl: upload.url, caption: resolvedCaption, tags: tags)
                 _ = try await NetworkManager.shared.request(PostEndpoint.create(request), as: Post.self)
                 
                 guard let self = self else { return }
+                if let tabBarController = self.tabBarController as? MainTabBarController {
+                    tabBarController.tabBar.isHidden = false
+                }
                 let homeSB = UIStoryboard(name: "Main", bundle: nil)
                 if let homeNav = homeSB.instantiateViewController(withIdentifier: "FeedNavigationController") as? UINavigationController {
                     homeNav.tabBarItem = UITabBarItem(title: nil, image: UIImage(systemName: "house"), tag: 0)
@@ -172,6 +181,7 @@ class PostOptionsViewController : UIViewController, UITextViewDelegate {
         if let text = textView.text, !text.isEmpty && text != "Add a caption..." {
             caption = text
         } else {
+            caption = nil
             textView.text = "Add a caption..."
         }
         captionOkayBtn.isHidden = true

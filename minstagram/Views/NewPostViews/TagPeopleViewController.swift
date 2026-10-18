@@ -192,10 +192,17 @@ extension TagPeopleViewController: UISearchBarDelegate {
     }
 
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        if let pending = tagView, !tagViewsDict.values.contains(pending) {
+            pending.removeFromSuperview()
+            tagView = nil
+        }
         searchBar.text = ""
         isSearching = false
         filteredFollowers = []
+        searchBar.isHidden = true
         searchResultsTableView.isHidden = true
+        newPostImgView.isHidden = false
+        hintLabel.isHidden = !tagList.isEmpty
         self.navigationController?.setNavigationBarHidden(false, animated: true)
         searchBar.resignFirstResponder()
     }
@@ -225,9 +232,10 @@ extension TagPeopleViewController: UITableViewDelegate, UITableViewDataSource {
         } else {
             let cell = tableView.dequeueReusableCell(withIdentifier: "TagCell") ?? UITableViewCell(style: .default, reuseIdentifier: "Cell")
             let taggedUser = tagList[indexPath.row].taggedUser
-            let tagRow = RowView(icon: UIImage(systemName: "person.circle.fill"), title: taggedUser.username, rowType: RowType.taggedUser) {
-                let removedTag = self.tagList[indexPath.row]
-                self.tagList.remove(at: indexPath.row)
+            let tagRow = RowView(icon: UIImage(systemName: "person.circle.fill"), title: taggedUser.username, rowType: RowType.taggedUser) { [weak self] in
+                guard let self = self,
+                      let index = self.tagList.firstIndex(where: { $0.taggedUser.username == taggedUser.username }) else { return }
+                let removedTag = self.tagList.remove(at: index)
                 if let tagView = self.tagViewsDict[removedTag.taggedUser.username] {
                     tagView.removeFromSuperview()
                     self.tagViewsDict.removeValue(forKey: removedTag.taggedUser.username)
@@ -250,6 +258,7 @@ extension TagPeopleViewController: UITableViewDelegate, UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         if tableView == searchResultsTableView {
+            guard filteredFollowers.indices.contains(indexPath.row) else { return }
             let username = filteredFollowers[indexPath.row].username
             updateTagView(with: "@\(username)")
 
@@ -269,19 +278,15 @@ extension TagPeopleViewController: UITableViewDelegate, UITableViewDataSource {
                     self.tagList.append(tag)
                     self.tagViewsDict[username] = tagView
                     self.tagsTableView.reloadData()
-                    for i in 0..<self.followerList.count {
-                        if self.followerList[i].username == username {
-                            self.followerList.remove(at: i)
-                            break
-                        }
+                    if let idx = self.followerList.firstIndex(where: { $0.username == username }) {
+                        self.followerList.remove(at: idx)
                     }
                 } catch {
+                    self?.tagView?.removeFromSuperview()
+                    self?.tagView = nil
                     self?.showError(error)
                 }
             }
-        } else {
-            print("a")
-            //ya hiçbir şey yapma ya da taglenen kişinin profiline git.
         }
     }
     

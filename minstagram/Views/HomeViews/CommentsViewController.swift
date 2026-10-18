@@ -13,7 +13,7 @@ protocol CommentsViewControllerDelegate: AnyObject {
 
 class CommentsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UITextFieldDelegate{
     
-    var delegate: CommentsViewControllerDelegate?
+    weak var delegate: CommentsViewControllerDelegate?
     var post: Post?
     var postIndex: IndexPath?
     var comments = [Comment]()
@@ -38,18 +38,20 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
         tableView.estimatedRowHeight = 120
         tableView.separatorStyle = .singleLine
         tableView.separatorColor = UIColor.lightGray
-        DispatchQueue.main.async {
-            if let commentIndex = self.commentIndex {
-                let commentIndexPath = IndexPath(row: commentIndex, section: 0)
-                self.tableView.scrollToRow(at: commentIndexPath, at: .top, animated: true)
-                let cell = self.tableView.cellForRow(at: commentIndexPath) as! CommentCell
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self,
+                  let commentIndex = self.commentIndex,
+                  self.comments.indices.contains(commentIndex) else { return }
+            let commentIndexPath = IndexPath(row: commentIndex, section: 0)
+            self.tableView.scrollToRow(at: commentIndexPath, at: .top, animated: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self = self,
+                      let cell = self.tableView.cellForRow(at: commentIndexPath) as? CommentCell else { return }
                 cell.selectionStyle = .default
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                    self.tableView.selectRow(at: commentIndexPath, animated: true, scrollPosition: .top)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        self.tableView.deselectRow(at: commentIndexPath, animated: true)
-                        cell.selectionStyle = .none
-                    }
+                self.tableView.selectRow(at: commentIndexPath, animated: true, scrollPosition: .none)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak cell] in
+                    self?.tableView.deselectRow(at: commentIndexPath, animated: true)
+                    cell?.selectionStyle = .none
                 }
             }
         }
@@ -62,8 +64,11 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
         ppImgView.layer.cornerRadius = ppImgView.frame.height / 2
         ppImgView.clipsToBounds = true
         ppImgView.backgroundColor = .lightGray
+        ppImgView.tintColor = .systemGray
         if let profileUrl = URL(string: activeUser.profilePhoto), !activeUser.profilePhoto.isEmpty {
             loadImage(from: profileUrl, into: ppImgView)
+        } else {
+            ppImgView.image = UIImage(systemName: "person.crop.circle.fill")
         }
         shareCommentButton.isUserInteractionEnabled = false
         shareCommentButton.tintColor = .systemGray
@@ -98,7 +103,8 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
     
     @IBAction func shareComment(_ sender: UIButton) {
         guard let post = post, let postIndex = postIndex else {return}
-        guard let text = commentTextField.text, !text.isEmpty else { return }
+        let text = (commentTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
         
         Task { [weak self] in
             do {
@@ -107,6 +113,8 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
                 self.comments.append(comment)
                 self.tableView.reloadData()
                 self.commentTextField.text = ""
+                self.shareCommentButton.isUserInteractionEnabled = false
+                self.shareCommentButton.tintColor = .systemGray
                 self.delegate?.commentsViewController(self, commentAddedAt: postIndex)
                 self.commentTextField.resignFirstResponder()
             } catch {
@@ -120,14 +128,17 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "CommentCell", for: indexPath) as! CommentCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "CommentCell", for: indexPath) as? CommentCell else {
+            return UITableViewCell()
+        }
         cell.selectionStyle = .none
         cell.configure(with: comments[indexPath.row])
         return cell
     }
     
     func textFieldDidChangeSelection(_ textField: UITextField) {
-        if !commentTextField.text!.isEmpty {
+        let hasText = !(commentTextField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if hasText {
             shareCommentButton.isUserInteractionEnabled = true
             shareCommentButton.tintColor = .systemBlue
         } else {
@@ -139,7 +150,7 @@ class CommentsViewController: UIViewController, UITableViewDelegate, UITableView
     private func loadImage(from url: URL, into imageView: UIImageView) {
         imageView.sd_setImage(
             with: url,
-            placeholderImage: UIImage(named: "placeholder")
+            placeholderImage: UIImage(systemName: "person.crop.circle.fill")
         )
     }
     

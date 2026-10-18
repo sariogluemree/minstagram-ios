@@ -41,7 +41,7 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
     }
     
     private func goToNotificationsPost(userId: String, notification: AppNotification) {
-        let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "FeedViewController") as! FeedViewController
+        guard let vc = UIStoryboard(name: "Main", bundle: nil).instantiateViewController(withIdentifier: "FeedViewController") as? FeedViewController else { return }
         vc.mode = .fromNotifications(notification, userId)
         self.navigationController?.pushViewController(vc, animated: true)
     }
@@ -71,8 +71,9 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
                 do {
                     let detailedUser = try await NetworkManager.shared.request(UserEndpoint.profile(username: notification.sender.username), as: UserDetail.self)
                     let sb = UIStoryboard(name: "Profile", bundle: nil)
-                    let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                    guard let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as? ProfileViewController else { return }
                     vc.user = detailedUser
+                    vc.loadViewIfNeeded()
                     vc.backBtn.isHidden = false
                     self?.navigationController?.pushViewController(vc, animated: true)
                 } catch {
@@ -80,20 +81,25 @@ class NotificationsViewController: UIViewController, UITableViewDelegate, UITabl
                 }
             }
         }
-        cell.onCellTapped = {
-            tableView.selectRow(at: indexPath, animated: true, scrollPosition: .none)
-            self.tableView(tableView, didSelectRowAt: indexPath)
+        cell.onCellTapped = { [weak self, weak tableView] in
+            guard let self = self, let tableView = tableView,
+                  let rowIndex = self.notifications.firstIndex(where: { $0.id == notification.id }) else { return }
+            let currentIndexPath = IndexPath(row: rowIndex, section: 0)
+            tableView.selectRow(at: currentIndexPath, animated: true, scrollPosition: .none)
+            self.tableView(tableView, didSelectRowAt: currentIndexPath)
         }
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        guard notifications.indices.contains(indexPath.row) else { return }
         let notification = notifications[indexPath.row]
         let type = notification.type
         switch type {
         case .follow:
-            let cell = tableView.cellForRow(at: indexPath) as! NotificationCell
-            cell.onGoProfileTapped?()
+            if let cell = tableView.cellForRow(at: indexPath) as? NotificationCell {
+                cell.onGoProfileTapped?()
+            }
         case .tag:
             let userId = notification.sender.id
             goToNotificationsPost(userId: userId, notification: notification)

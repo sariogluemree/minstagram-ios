@@ -10,27 +10,50 @@ import Foundation
 class UserManager {
     static let shared = UserManager()
     var activeUser: UserDetail?
-    private init() {}
+    private init() {
+        activeUser = loadCachedUser()
+    }
 
     private enum Keys {
         static let activeUser = "activeUser"
         static let newUser = "newUser"
     }
 
+    @discardableResult
+    func loadCachedUser() -> UserDetail? {
+        guard let userData = UserDefaults.standard.data(forKey: Keys.activeUser),
+              let cachedUser = try? JSONDecoder().decode(UserDetail.self, from: userData) else {
+            return nil
+        }
+        activeUser = cachedUser
+        return cachedUser
+    }
+
     /// Cache'teki kullanıcının güncel profilini backend'den çeker.
     /// - Returns: Profil alınabildiyse `true`.
     @MainActor
     func restoreSession() async -> Bool {
-        guard let userData = UserDefaults.standard.data(forKey: Keys.activeUser),
-              let cachedUser = try? JSONDecoder().decode(UserDetail.self, from: userData) else {
+        guard let cachedUser = activeUser ?? loadCachedUser() else {
             return false
         }
         do {
-            activeUser = try await NetworkManager.shared.request(UserEndpoint.profile(username: cachedUser.username),
-                                                                 as: UserDetail.self)
+            let freshUser = try await NetworkManager.shared.request(
+                UserEndpoint.profile(username: cachedUser.username),
+                as: UserDetail.self
+            )
+            updateActiveUser(user: freshUser)
+            return true
+        } catch let networkError as NetworkError {
+            if case .unauthorized = networkError {
+                return false
+            }
+            if case .server(let statusCode, _) = networkError, statusCode == 404 {
+                return false
+            }
+            // Geçici bağlantı hatalarında cache'teki kullanıcı ile devam et
             return true
         } catch {
-            return false
+            return true
         }
     }
 
@@ -40,6 +63,7 @@ class UserManager {
         }
         activeUser = user
     }
+
 
     func getNewRegisteredUserName() -> String? {
         guard let userData = UserDefaults.standard.data(forKey: Keys.newUser) else {

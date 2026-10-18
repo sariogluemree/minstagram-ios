@@ -24,6 +24,8 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     var postIndex: Int?
     private var refreshControl: UIRefreshControl?
     private var notificationCheckTimer: Timer?
+    private var expandedPostIds: Set<String> = []
+    private var hiddenLikeCountPostIds: Set<String> = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,8 +35,6 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
             setupNavigationBarForFeed()
             setupTableView()
             fetchAllPosts()
-            checkUnseenNotificationsAndUpdateUI()
-            startNotificationCheckTimer()
         case .userPosts:
             setupNavigationBarForUser()
             setupTableView()
@@ -74,7 +74,7 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
         titleLabel.font = UIFont(name: "Helvetica Neue", size: 22)
         titleLabel.sizeToFit()
         let backButtonItem = UIBarButtonItem(image: UIImage(systemName: "arrow.backward"), style: .plain, target: self, action: #selector(back))
-        backButtonItem.tintColor = .black
+        backButtonItem.tintColor = .label
         navigationItem.leftBarButtonItem = backButtonItem
         let titleItem = UIBarButtonItem(customView: titleLabel)
         navigationItem.leftBarButtonItems?.append(titleItem)
@@ -103,21 +103,23 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     }
     
     private func scrollToInitialPostIfNeeded() {
-        guard self.tableView.numberOfRows(inSection: 0) > 0 else { return }
+        guard self.tableView.numberOfRows(inSection: 0) > 0, !posts.isEmpty else { return }
 
         switch mode {
         case .userPosts:
-            if let postIndex = self.postIndex {
+            if let postIndex = self.postIndex, posts.indices.contains(postIndex) {
                 let indexPath = IndexPath(row: postIndex, section: 0)
                 self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
             }
         case .fromNotifications(let notification, _):
             let index = posts.firstIndex(where: { $0.id == notification.postId }) ?? 0
+            guard posts.indices.contains(index) else { return }
             self.postIndex = index
             let indexPath = IndexPath(row: index, section: 0)
             self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                guard let self = self, self.posts.indices.contains(index) else { return }
                 switch notification.type {
                 case .tag:
                     if let cell = self.tableView.cellForRow(at: indexPath) as? PostCell {
@@ -125,7 +127,7 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
                     }
                 case .comment:
                     let comments = self.posts[index].comments
-                    let commentIndex = comments.firstIndex(where: { $0.id == notification.comment?.id }) ?? 0
+                    let commentIndex = comments.firstIndex(where: { $0.id == notification.comment?.id })
                     if let commentsNav = UIStoryboard(name: "Main", bundle: nil)
                         .instantiateViewController(withIdentifier: "CommentsNavController") as? UINavigationController,
                        let commentsVC = commentsNav.viewControllers.first as? CommentsViewController {
@@ -183,13 +185,15 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
         }
     }
     
-    func refreshPost(withId id: String, at indexPath: IndexPath) {
+    func refreshPost(withId id: String, at indexPath: IndexPath? = nil) {
         Task { [weak self] in
             // Sessiz yenileme: hata olursa mevcut hücre olduğu gibi kalır.
             guard let updatedPost = try? await NetworkManager.shared.request(PostEndpoint.detail(id: id), as: Post.self),
-                  let self = self, self.posts.indices.contains(indexPath.row) else { return }
-            self.posts[indexPath.row] = updatedPost
-            self.tableView.reloadRows(at: [indexPath], with: .none)
+                  let self = self,
+                  let rowIndex = self.posts.firstIndex(where: { $0.id == id }) else { return }
+            self.posts[rowIndex] = updatedPost
+            let targetIndexPath = IndexPath(row: rowIndex, section: 0)
+            self.tableView.reloadRows(at: [targetIndexPath], with: .none)
         }
     }
     
@@ -199,7 +203,7 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     
     @IBAction func showNotifications(_ sender: UIBarButtonItem) {
         let sb = UIStoryboard(name: "Main", bundle: nil)
-        let vc = sb.instantiateViewController(withIdentifier: "NotificationsViewController") as! NotificationsViewController
+        guard let vc = sb.instantiateViewController(withIdentifier: "NotificationsViewController") as? NotificationsViewController else { return }
         navigationController?.pushViewController(vc, animated: true)
         removeRedDotFromBarButton()
     }
@@ -221,44 +225,17 @@ class FeedViewController: UIViewController, CommentsViewControllerDelegate{
     }
     
     private func addRedDotToBarButton() {
-        // Önce mevcut kırmızı noktayı kaldır
-        removeRedDotFromBarButton()
-        
-        // Yeni bir view oluştur
-        let redDotSize: CGFloat = 10
-        let redDot = UIView(frame: CGRect(x: 0, y: 0, width: redDotSize, height: redDotSize))
-        redDot.backgroundColor = .systemRed
-        redDot.layer.cornerRadius = redDotSize / 2
-        redDot.clipsToBounds = true
-        redDot.tag = 999
-        
-        // Kırmızı noktayı tıklanabilir yap
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(showNotifications(_:)))
-        redDot.isUserInteractionEnabled = true
-        redDot.addGestureRecognizer(tapGesture)
-        
-        // Bar button item'ın view'ını bul
-        if let buttonView = notificationsBtn.value(forKey: "view") as? UIView {
-            buttonView.addSubview(redDot)
-            
-            // Kırmızı noktayı sağ üst köşeye yerleştir
-            redDot.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                redDot.bottomAnchor.constraint(equalTo: buttonView.bottomAnchor, constant: -10),
-                redDot.trailingAnchor.constraint(equalTo: buttonView.trailingAnchor, constant: -10),
-                redDot.widthAnchor.constraint(equalToConstant: redDotSize),
-                redDot.heightAnchor.constraint(equalToConstant: redDotSize)
-            ])
-        }
+        notificationsBtn?.image = UIImage(systemName: "suit.heart.fill")
+        notificationsBtn?.tintColor = .systemRed
     }
     
     private func removeRedDotFromBarButton() {
-        if let buttonView = notificationsBtn.value(forKey: "view") as? UIView {
-            buttonView.viewWithTag(999)?.removeFromSuperview()
-        }
+        notificationsBtn?.image = UIImage(systemName: "suit.heart")
+        notificationsBtn?.tintColor = .label
     }
     
     private func startNotificationCheckTimer() {
+        notificationCheckTimer?.invalidate()
         notificationCheckTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
             self?.checkUnseenNotificationsAndUpdateUI()
         }
@@ -279,21 +256,30 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
         }
         cell.selectionStyle = .none
         let post = posts[indexPath.row]
+        let isExpanded = expandedPostIds.contains(post.id)
+        let isLikeCountHidden = hiddenLikeCountPostIds.contains(post.id)
         
         cell.post = post
-        cell.configure(with: post, isTruncated: cell.isExpandedCaption)
+        cell.isExpandedCaption = isExpanded
+        cell.configure(with: post, isTruncated: !isExpanded)
+        if isLikeCountHidden {
+            cell.likeCountLabel.text = "*** likes"
+        }
         
-        cell.onOptionsTapped = {
+        cell.onOptionsTapped = { [weak self, weak cell] in
+            guard let self = self else { return }
             let actionSheet = UIAlertController(title: "Options", message: nil, preferredStyle: .actionSheet)
             
             actionSheet.addAction(UIAlertAction(title: "Edit post", style: .default, handler: { _ in
                 //edit sayfası yap.
             }))
-            actionSheet.addAction(UIAlertAction(title: "Delete post", style: .default, handler: { _ in
+            actionSheet.addAction(UIAlertAction(title: "Delete post", style: .destructive, handler: { [weak self] _ in
                 Task { @MainActor [weak self] in
                     do {
                         try await NetworkManager.shared.request(PostEndpoint.delete(id: post.id))
                         guard let self = self, let index = self.posts.firstIndex(where: { $0.id == post.id }) else { return }
+                        self.expandedPostIds.remove(post.id)
+                        self.hiddenLikeCountPostIds.remove(post.id)
                         self.posts.remove(at: index)
                         self.tableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
                     } catch {
@@ -302,11 +288,14 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
                 }
             }))
             ///like count tek option şeklinde olacak. post'un likeCount'u için flag tutulacak. bu option bool değer için toggle yapacak ve ona göre ui düzenleyecek.
-            actionSheet.addAction(UIAlertAction(title: "Hide like count", style: .default, handler: { _ in
-                cell.likeCountLabel.text = "*** likes"
+            actionSheet.addAction(UIAlertAction(title: "Hide like count", style: .default, handler: { [weak self, weak cell] _ in
+                self?.hiddenLikeCountPostIds.insert(post.id)
+                cell?.likeCountLabel.text = "*** likes"
             }))
-            actionSheet.addAction(UIAlertAction(title: "Show like count", style: .default, handler: { _ in
-                cell.likeCountLabel.text = "\(post.likeCount) likes"
+            actionSheet.addAction(UIAlertAction(title: "Show like count", style: .default, handler: { [weak self, weak cell] _ in
+                self?.hiddenLikeCountPostIds.remove(post.id)
+                let currentCount = self?.posts.first(where: { $0.id == post.id })?.likeCount ?? post.likeCount
+                cell?.likeCountLabel.text = "\(currentCount) likes"
             }))
 
             actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
@@ -317,11 +306,12 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
         
         cell.onLikeTapped = { [weak self] in
             guard let self = self else { return }
-            let endpoint: LikeEndpoint = post.isLiked ? .unlike(postId: post.id) : .like(postId: post.id)
+            let currentPost = self.posts.first(where: { $0.id == post.id }) ?? post
+            let endpoint: LikeEndpoint = currentPost.isLiked ? .unlike(postId: post.id) : .like(postId: post.id)
             Task { @MainActor [weak self] in
                 do {
                     try await NetworkManager.shared.request(endpoint)
-                    self?.refreshPost(withId: post.id, at: indexPath)
+                    self?.refreshPost(withId: post.id)
                 } catch {
                     self?.showError(error)
                 }
@@ -329,11 +319,12 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
         }
         cell.onSaveTapped = { [weak self] in
             guard let self = self else { return }
-            let endpoint: SavedPostEndpoint = post.isSaved ? .unsave(postId: post.id) : .save(postId: post.id)
+            let currentPost = self.posts.first(where: { $0.id == post.id }) ?? post
+            let endpoint: SavedPostEndpoint = currentPost.isSaved ? .unsave(postId: post.id) : .save(postId: post.id)
             Task { @MainActor [weak self] in
                 do {
                     try await NetworkManager.shared.request(endpoint)
-                    self?.refreshPost(withId: post.id, at: indexPath)
+                    self?.refreshPost(withId: post.id)
                 } catch {
                     self?.showError(error)
                 }
@@ -346,8 +337,9 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
                 do {
                     let detailedUser = try await NetworkManager.shared.request(UserEndpoint.profile(username: post.user.username), as: UserDetail.self)
                     let sb = UIStoryboard(name: "Profile", bundle: nil)
-                    let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as! ProfileViewController
+                    guard let vc = sb.instantiateViewController(withIdentifier: "ProfileViewController") as? ProfileViewController else { return }
                     vc.user = detailedUser
+                    vc.loadViewIfNeeded()
                     vc.backBtn.isHidden = false
                     self?.navigationController?.pushViewController(vc, animated: true)
                 } catch {
@@ -356,19 +348,32 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
             }
         }
         
-        cell.onCaptionTapped = {
-            cell.configure(with: post, isTruncated: !cell.isExpandedCaption)
-            tableView.beginUpdates()
-            tableView.endUpdates()
+        cell.onCaptionTapped = { [weak self, weak cell, weak tableView] in
+            guard let self = self, let cell = cell else { return }
+            let currentPost = self.posts.first(where: { $0.id == post.id }) ?? post
+            let shouldExpand = !self.expandedPostIds.contains(post.id)
+            if shouldExpand {
+                self.expandedPostIds.insert(post.id)
+            } else {
+                self.expandedPostIds.remove(post.id)
+            }
+            cell.configure(with: currentPost, isTruncated: !shouldExpand)
+            if self.hiddenLikeCountPostIds.contains(post.id) {
+                cell.likeCountLabel.text = "*** likes"
+            }
+            tableView?.beginUpdates()
+            tableView?.endUpdates()
         }
         
-        cell.onCommentTapped = {
+        cell.onCommentTapped = { [weak self] in
+            guard let self = self,
+                  let rowIndex = self.posts.firstIndex(where: { $0.id == post.id }) else { return }
             let storyboard = UIStoryboard(name: "Main", bundle: nil)
-            if let commentsNav = storyboard.instantiateViewController(withIdentifier: "CommentsNavController") as? UINavigationController {
-                let commentsVC = commentsNav.viewControllers.first as! CommentsViewController
+            if let commentsNav = storyboard.instantiateViewController(withIdentifier: "CommentsNavController") as? UINavigationController,
+               let commentsVC = commentsNav.viewControllers.first as? CommentsViewController {
                 commentsVC.delegate = self
-                commentsVC.post = post
-                commentsVC.postIndex = indexPath
+                commentsVC.post = self.posts[rowIndex]
+                commentsVC.postIndex = IndexPath(row: rowIndex, section: 0)
                 commentsNav.modalPresentationStyle = .pageSheet
                 self.present(commentsNav, animated: true, completion: nil)
             }
@@ -384,6 +389,7 @@ extension FeedViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func commentsViewController(_ controller: CommentsViewController, commentAddedAt index: IndexPath) {
+        guard posts.indices.contains(index.row) else { return }
         let post = posts[index.row]
         self.refreshPost(withId: post.id, at: index)
     }

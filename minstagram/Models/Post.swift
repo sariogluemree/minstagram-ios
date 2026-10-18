@@ -12,12 +12,13 @@ struct Post: Codable {
     let imageUrl: String
     var caption: String?
     let tags: [Tag]
-    let createdAt: String
+    let createdAt: Date
     let user: PostUser
     var comments: [Comment]
     var likeCount: Int
     var isLiked: Bool
     var isSaved: Bool
+
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"

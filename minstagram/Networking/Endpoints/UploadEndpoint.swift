@@ -11,8 +11,9 @@ enum UploadEndpoint: Endpoint {
 
     var path: String { "upload" }
     var method: HTTPMethod { .post }
-    var requiresAuth: Bool { false }
+    var requiresAuth: Bool { true }
 }
+
 
 /// Cloudinary klasörleri (backend `type` form alanı).
 enum UploadFolder {
