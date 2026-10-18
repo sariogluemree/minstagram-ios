@@ -12,7 +12,7 @@ protocol ProfileViewControllerDelegate: AnyObject {
     func didUpdateUserProfile(_ user: UserDetail)
 }
 
-class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
+class ProfileViewController: UIViewController, ProfileViewControllerDelegate, FollowListViewControllerDelegate {
     
     func didUpdateUserProfile(_ user: UserDetail) {
         self.user = user
@@ -30,6 +30,13 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
         bioLabel.text = user.bio
     }
     
+    func didUpdateFollowCounts(followersCount: Int, followingCount: Int) {
+        user?.followersCount = followersCount
+        user?.followingCount = followingCount
+        followersCountLbl.text = followersCount.description
+        followingCountLbl.text = followingCount.description
+    }
+    
     @IBOutlet weak var nameLbl: UILabel!
     @IBOutlet weak var profileImgView: UIImageView!
     @IBOutlet weak var postCountLbl: UILabel!
@@ -43,19 +50,32 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
     var collectionView: UICollectionView?
     var user: UserDetail?
     var posts: [Post] = []
+    private var isFollowingUser = false
+    
+    private var isOwnProfile: Bool {
+        guard let userId = user?.id else { return false }
+        return userId == UserManager.shared.activeUser?.id
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         guard let user = user else { return }
         setupNavigationTitle(username: user.username)
+        setupNavigationMenu()
         setupUserProfile(user: user)
+        setupStatTapGestures()
         actionContainerView.backgroundColor = .systemBackground
         setupInitialState(userId: user.id)
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        refreshProfileCountsAndPosts()
+    }
+    
     private func setupInitialState(userId: String) {
-        if userId == UserManager.shared.activeUser?.id { //active user state
+        if isOwnProfile { // active user state
             self.updateActionView(OwnProfileActionView())
             self.setupCollectionView()
             self.fetchPosts(userId: userId)
@@ -64,16 +84,40 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
                 do {
                     let response = try await NetworkManager.shared.request(FollowEndpoint.isFollowing(userId: userId), as: IsFollowingResponse.self)
                     guard let self = self else { return }
-                    if response.isFollowing { //followed state
+                    self.isFollowingUser = response.isFollowing
+                    if response.isFollowing { // followed state
                         self.updateActionView(FollowedProfileActionView())
                         self.setupCollectionView()
                         self.fetchPosts(userId: userId)
-                    } else { //unfollowed state
+                    } else { // unfollowed state
                         self.updateActionView(UnfollowedProfileActionView())
                     }
                 } catch {
                     self?.showError(error)
                 }
+            }
+        }
+    }
+    
+    private func refreshProfileCountsAndPosts() {
+        guard let currentUsername = user?.username else { return }
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            guard let freshUser = try? await NetworkManager.shared.request(
+                UserEndpoint.profile(username: currentUsername),
+                as: UserDetail.self
+            ) else { return }
+            self.user = freshUser
+            self.postCountLbl.text = freshUser.postsCount.description
+            self.followersCountLbl.text = freshUser.followersCount.description
+            self.followingCountLbl.text = freshUser.followingCount.description
+            self.nameLbl.text = freshUser.name
+            self.bioLabel.text = freshUser.bio
+            if self.isOwnProfile {
+                UserManager.shared.updateActiveUser(user: freshUser)
+                self.fetchPosts(userId: freshUser.id)
+            } else if self.isFollowingUser {
+                self.fetchPosts(userId: freshUser.id)
             }
         }
     }
@@ -85,6 +129,155 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
         titleLabel.sizeToFit()
         let titleItem = UIBarButtonItem(customView: titleLabel)
         navigationItem.leftBarButtonItems?.append(titleItem)
+    }
+    
+    private func setupNavigationMenu() {
+        if isOwnProfile {
+            if let menuBtn = navigationItem.rightBarButtonItem {
+                menuBtn.target = self
+                menuBtn.action = #selector(didTapMenuButton)
+                menuBtn.tintColor = .label
+            } else {
+                let menuBtn = UIBarButtonItem(
+                    image: UIImage(systemName: "line.3.horizontal"),
+                    style: .plain,
+                    target: self,
+                    action: #selector(didTapMenuButton)
+                )
+                menuBtn.tintColor = .label
+                navigationItem.rightBarButtonItem = menuBtn
+            }
+        } else {
+            navigationItem.rightBarButtonItem = nil
+        }
+    }
+    
+    private func setupStatTapGestures() {
+        let followersTargetView = followersCountLbl.superview ?? followersCountLbl!
+        followersTargetView.isUserInteractionEnabled = true
+        let followersTap = UITapGestureRecognizer(target: self, action: #selector(didTapFollowersStat))
+        followersTargetView.addGestureRecognizer(followersTap)
+        
+        let followingTargetView = followingCountLbl.superview ?? followingCountLbl!
+        followingTargetView.isUserInteractionEnabled = true
+        let followingTap = UITapGestureRecognizer(target: self, action: #selector(didTapFollowingStat))
+        followingTargetView.addGestureRecognizer(followingTap)
+        
+        let postsTargetView = postCountLbl.superview ?? postCountLbl!
+        postsTargetView.isUserInteractionEnabled = true
+        let postsTap = UITapGestureRecognizer(target: self, action: #selector(didTapPostsStat))
+        postsTargetView.addGestureRecognizer(postsTap)
+    }
+    
+    @objc private func didTapFollowersStat() {
+        openFollowList(mode: .followers)
+    }
+    
+    @objc private func didTapFollowingStat() {
+        openFollowList(mode: .following)
+    }
+    
+    @objc private func didTapPostsStat() {
+        guard !posts.isEmpty, let cv = collectionView, cv.numberOfItems(inSection: 0) > 0 else { return }
+        cv.scrollToItem(at: IndexPath(item: 0, section: 0), at: .top, animated: true)
+    }
+    
+    private func openFollowList(mode: FollowListMode) {
+        guard let user = user else { return }
+        let listVC = FollowListViewController(user: user, initialMode: mode)
+        listVC.delegate = self
+        navigationController?.pushViewController(listVC, animated: true)
+    }
+    
+    @objc private func didTapMenuButton() {
+        let actionSheet = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        
+        actionSheet.addAction(UIAlertAction(title: "Saved", style: .default) { [weak self] _ in
+            let savedVC = SavedPostsViewController()
+            self?.navigationController?.pushViewController(savedVC, animated: true)
+        })
+        
+        actionSheet.addAction(UIAlertAction(title: "Edit Profile", style: .default) { [weak self] _ in
+            self?.didTapEditProfile()
+        })
+        
+        actionSheet.addAction(UIAlertAction(title: "Share Profile", style: .default) { [weak self] _ in
+            self?.didTapShareProfile()
+        })
+        
+        actionSheet.addAction(UIAlertAction(title: "Log Out", style: .destructive) { [weak self] _ in
+            self?.confirmLogOut()
+        })
+        
+        actionSheet.addAction(UIAlertAction(title: "Delete Account", style: .destructive) { [weak self] _ in
+            self?.confirmDeleteAccount()
+        })
+        
+        actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        if let popover = actionSheet.popoverPresentationController {
+            popover.barButtonItem = navigationItem.rightBarButtonItem
+        }
+        present(actionSheet, animated: true)
+    }
+    
+    private func confirmLogOut() {
+        let alert = UIAlertController(
+            title: "Log Out",
+            message: "Are you sure you want to log out of your account?",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Log Out", style: .destructive) { [weak self] _ in
+            self?.performLogOut()
+        })
+        present(alert, animated: true)
+    }
+    
+    private func performLogOut() {
+        UserManager.shared.logOut()
+        transitionToAuthScreen()
+    }
+    
+    private func confirmDeleteAccount() {
+        let alert = UIAlertController(
+            title: "Delete Account",
+            message: "This action is permanent. All your posts, comments, likes, and profile data will be deleted.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            self?.performDeleteAccount()
+        })
+        present(alert, animated: true)
+    }
+    
+    private func performDeleteAccount() {
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            do {
+                _ = try await NetworkManager.shared.request(UserEndpoint.delete, as: MessageResponse.self)
+                UserManager.shared.logOut()
+                self.transitionToAuthScreen()
+            } catch {
+                self.showError(error)
+            }
+        }
+    }
+    
+    private func transitionToAuthScreen() {
+        let authStoryboard = UIStoryboard(name: "Auth", bundle: nil)
+        guard let loginVC = authStoryboard.instantiateInitialViewController(),
+              let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else { return }
+        
+        window.rootViewController = loginVC
+        UIView.transition(
+            with: window,
+            duration: 0.3,
+            options: .transitionCrossDissolve,
+            animations: nil
+        )
     }
     
     func setupUserProfile(user: UserDetail) {
@@ -100,6 +293,8 @@ class ProfileViewController: UIViewController, ProfileViewControllerDelegate {
         postCountLbl.text = user.postsCount.description
         followersCountLbl.text = user.followersCount.description
         followingCountLbl.text = user.followingCount.description
+        bioLabel.numberOfLines = 0
+        bioLabel.lineBreakMode = .byWordWrapping
         bioLabel.text = user.bio
     }
     
@@ -217,6 +412,7 @@ extension ProfileViewController: ProfileActionViewDelegate {
     func didTapShareProfile() {
         let sb = UIStoryboard(name: "Profile", bundle: nil)
         guard let shareVC = sb.instantiateViewController(withIdentifier: "ShareProfileViewController") as? ShareProfileViewController else { return }
+        shareVC.user = user
         navigationController?.pushViewController(shareVC, animated: true)
     }
     
@@ -231,6 +427,7 @@ extension ProfileViewController: ProfileActionViewDelegate {
             do {
                 try await NetworkManager.shared.request(FollowEndpoint.unfollow(userId: user.id))
                 guard let self = self else { return }
+                self.isFollowingUser = false
                 self.updateActionView(UnfollowedProfileActionView())
                 self.posts = []
                 self.collectionView?.reloadData()
@@ -255,6 +452,7 @@ extension ProfileViewController: ProfileActionViewDelegate {
             do {
                 try await NetworkManager.shared.request(FollowEndpoint.follow(userId: user.id))
                 guard let self = self else { return }
+                self.isFollowingUser = true
                 self.updateActionView(FollowedProfileActionView())
                 self.setupCollectionView()
                 self.fetchPosts(userId: user.id)

@@ -61,14 +61,17 @@ class EditProfileRowView: UIView, UITextViewDelegate {
             tv.text = placeHolder
             tv.font = UIFont.systemFont(ofSize: 16)
             tv.isScrollEnabled = false
+            tv.textContainerInset = UIEdgeInsets(top: 6, left: 0, bottom: 6, right: 0)
+            tv.textContainer.lineFragmentPadding = 0
             tv.backgroundColor = .clear
             tv.delegate = self
             tv.translatesAutoresizingMaskIntoConstraints = false
             addSubview(tv)
             textView = tv
 
-            textViewHeightConstraint = tv.heightAnchor.constraint(equalToConstant: 40)
-            textViewHeightConstraint?.isActive = true
+            let minHeight = tv.heightAnchor.constraint(greaterThanOrEqualToConstant: 40)
+            minHeight.isActive = true
+            textViewHeightConstraint = minHeight
 
             NSLayoutConstraint.activate([
                 tv.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
@@ -104,10 +107,9 @@ class EditProfileRowView: UIView, UITextViewDelegate {
     }
 
     func textViewDidChange(_ textView: UITextView) {
-        let size = CGSize(width: textView.frame.width, height: .infinity)
-        let estimatedSize = textView.sizeThatFits(size)
-        textViewHeightConstraint?.constant = estimatedSize.height
-        layoutIfNeeded()
+        invalidateIntrinsicContentSize()
+        superview?.setNeedsLayout()
+        superview?.layoutIfNeeded()
 
         NotificationCenter.default.post(name: .editProfileDidChange, object: self)
     }
